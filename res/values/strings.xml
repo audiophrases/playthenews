@@ -8,4 +8,13 @@
     <string name="next">Next</string>
     <string name="stop">Stop</string>
     <string name="up_next">Queue</string>
+    <string name="edit_list">Edit list</string>
+    <string name="my_list">My news list</string>
+    <string name="edit_hint">Plays top to bottom. Each source plays its latest bulletin.</string>
+    <string name="add_sources">Add sources</string>
+    <string name="reset">Reset</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
+    <string name="remove">Remove</string>
+    <string name="back">Back</string>
 </resources>

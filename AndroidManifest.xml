@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.eugen.playthenews"
-    android:versionCode="2"
-    android:versionName="2.0">
+    android:versionCode="3"
+    android:versionName="3.0">
 
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="36" />
 
-    <!-- Episode artwork may be an http(s) URL. -->
+    <!-- Feeds, episodes and artwork are fetched directly; some are plain http. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Android 11+ package visibility: without this the Google app's service is invisible to us. -->
     <queries>
@@ -35,5 +39,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".EditListActivity"
+            android:label="@string/my_list"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/PlayerTheme" />
+
+        <service
+            android:name=".PlayerService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 </manifest>
