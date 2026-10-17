@@ -1,0 +1,315 @@
+/* The Android app's dark theme. */
+:root {
+  --bg: #121214;
+  --surface: #1c1c20;
+  --chip: #2a2a2e;
+  --text: #ffffff;
+  --row: #e0e0e6;
+  --muted: #b0b0b8;
+  --faint: #8a8a92;
+  --accent: #8ab4f8;
+  --primary: #1a73e8;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.view {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+[hidden] { display: none !important; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+a { color: inherit; }
+
+svg { fill: currentColor; }
+
+/* ---- player ------------------------------------------------------------------------- */
+
+.art {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: 16px auto 0;
+  border-radius: 16px;
+  object-fit: cover;
+  background: var(--chip);
+}
+
+.title {
+  margin: 16px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.title .flag { vertical-align: -1px; margin-right: 10px; }
+
+.subtitle {
+  margin: 4px 0 0;
+  min-height: 1.4em;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seek {
+  width: 100%;
+  margin: 16px 0 0;
+  accent-color: var(--accent);
+}
+
+.times {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text);
+  flex: none;
+}
+
+.icon:hover, .icon:focus-visible { background: rgba(255, 255, 255, .08); }
+
+.icon svg { width: 28px; height: 28px; }
+
+.play {
+  width: 72px;
+  height: 72px;
+  margin: 0 8px;
+  padding: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.play svg { width: 36px; height: 36px; }
+
+.row {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.status {
+  flex: 1;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.section {
+  flex: 1;
+  color: var(--faint);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.link {
+  padding: 8px;
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.queue, .list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.queue li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  color: var(--row);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.queue li:hover { background: rgba(255, 255, 255, .04); }
+
+.queue li.active { color: var(--accent); font-weight: 700; }
+
+.queue .text, .list .name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.flag {
+  width: 20px;
+  height: 15px;
+  flex: none;
+  display: inline-block;
+}
+
+.empty { color: var(--muted); text-align: center; margin-top: 24px; }
+
+/* ---- list editor -------------------------------------------------------------------- */
+
+.header h2 { margin: 0 0 0 4px; font-size: 20px; }
+
+.chips { display: flex; gap: 8px; padding: 12px 8px 10px; }
+
+.chip {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--chip);
+  font-size: 14px;
+}
+
+.chip[aria-checked="true"] { background: var(--primary); }
+
+.hint { margin: 0; padding: 0 8px 8px; color: var(--muted); font-size: 13px; }
+
+.list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0 6px 8px;
+  border-bottom: 1px solid var(--chip);
+}
+
+.list .text { flex: 1; min-width: 0; }
+
+.list .name { color: var(--row); }
+
+.list .label { color: var(--faint); font-size: 12px; }
+
+.list .icon { width: 46px; height: 46px; }
+
+.list .icon svg { width: 22px; height: 22px; }
+
+.list .icon:disabled { opacity: .3; cursor: default; }
+
+.primary {
+  display: block;
+  width: 100%;
+  height: 52px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--primary);
+  font-size: 16px;
+}
+
+/* ---- dialog & toast ----------------------------------------------------------------- */
+
+dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+dialog::backdrop { background: rgba(0, 0, 0, .6); }
+
+.dialog { display: flex; flex-direction: column; max-height: calc(100vh - 64px); }
+
+.dialog h3 { margin: 0; padding: 20px 20px 8px; font-size: 18px; }
+
+.dialog-body { overflow-y: auto; padding: 0 8px; }
+
+.dialog-body .choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  color: var(--row);
+}
+
+.dialog-body .choice:hover { background: rgba(255, 255, 255, .06); }
+
+.dialog-body .choice input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+
+.dialog-body .count { color: var(--faint); }
+
+.dialog-body .feed { padding: 4px 12px 12px; }
+
+.dialog-body .feed input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--chip);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.dialog-body .feed p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+
+.dialog-actions { display: flex; justify-content: flex-end; gap: 4px; padding: 8px 12px 12px; }
+
+.text-button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.text-button:hover { background: rgba(138, 180, 248, .1); }
+
+.text-button:disabled { opacity: .4; cursor: default; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: #e0e0e6;
+  color: #121214;
+  font-size: 14px;
+}

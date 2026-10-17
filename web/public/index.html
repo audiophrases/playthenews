@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121214">
+  <title>Play the News</title>
+  <link rel="icon" href="/icon.png">
+  <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- The Android app's icons (res/drawable/ic_*.xml), as SVG. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8,5v14l11,-7z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6,19h4V5H6v14zM14,5v14h4V5h-4z"/></symbol>
+    <symbol id="i-prev" viewBox="0 0 24 24"><path d="M6,6h2v12H6zM9.5,12l8.5,6V6z"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="M6,18l8.5,-6L6,6v12zM16,6v12h2V6h-2z"/></symbol>
+    <symbol id="i-rewind" viewBox="0 0 24 24"><path d="M11,18V6l-8.5,6 8.5,6zM11.5,12l8.5,6V6l-8.5,6z"/></symbol>
+    <symbol id="i-forward" viewBox="0 0 24 24"><path d="M4,18l8.5,-6L4,6v12zM13,6v12l8.5,-6L13,6z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><path d="M6,6h12v12H6z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M20,11H7.83l5.59,-5.59L12,4l-8,8 8,8 1.41,-1.41L7.83,13H20v-2z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M4,12l1.41,1.41L11,7.83V20h2V7.83l5.58,5.59L20,12l-8,-8 -8,8z"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M20,12l-1.41,-1.41L13,16.17V4h-2v12.17l-5.58,-5.59L4,12l8,8 8,-8z"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5 12,10.59 6.41,5 5,6.41 10.59,12 5,17.59 6.41,19 12,13.41 17.59,19 19,17.59 13.41,12z"/></symbol>
+  </svg>
+
+  <main id="player" class="view">
+    <img id="art" class="art" src="/icon.png" alt="">
+    <h1 id="title" class="title">Play the News</h1>
+    <p id="subtitle" class="subtitle"></p>
+
+    <input id="seek" class="seek" type="range" min="0" max="0" value="0" step="1" aria-label="Position">
+    <div class="times"><span id="elapsed">0:00</span><span id="duration">--:--</span></div>
+
+    <div class="controls">
+      <button id="prev" class="icon" aria-label="Previous"><svg><use href="#i-prev"/></svg></button>
+      <button id="rewind" class="icon" aria-label="Back 15 seconds"><svg><use href="#i-rewind"/></svg></button>
+      <button id="play" class="play" aria-label="Play or pause"><svg><use id="play-icon" href="#i-play"/></svg></button>
+      <button id="forward" class="icon" aria-label="Forward 30 seconds"><svg><use href="#i-forward"/></svg></button>
+      <button id="next" class="icon" aria-label="Next"><svg><use href="#i-next"/></svg></button>
+    </div>
+
+    <div class="row">
+      <span id="status" class="status"></span>
+      <button id="stop" class="icon" aria-label="Stop"><svg><use href="#i-stop"/></svg></button>
+    </div>
+
+    <div class="row">
+      <span class="section">My list</span>
+      <a class="link" href="#list">Edit list</a>
+    </div>
+    <ol id="queue" class="queue"></ol>
+    <p id="empty" class="empty" hidden>Your list is empty. <a class="link" href="#list">Add sources</a> to start.</p>
+  </main>
+
+  <section id="edit" class="view" hidden>
+    <div class="row header">
+      <a class="icon" href="#" aria-label="Back"><svg><use href="#i-back"/></svg></a>
+      <h2>My news list</h2>
+    </div>
+    <div class="chips" role="radiogroup" aria-label="Play order">
+      <button id="order-mine" class="chip" role="radio">My order</button>
+      <button id="order-newest" class="chip" role="radio">Newest first</button>
+    </div>
+    <p id="hint" class="hint"></p>
+    <ul id="list" class="list"></ul>
+    <button id="add" class="primary">Add sources</button>
+  </section>
+
+  <dialog id="add-dialog">
+    <form method="dialog" class="dialog">
+      <h3 id="add-title">Add from</h3>
+      <div id="add-body" class="dialog-body"></div>
+      <div class="dialog-actions">
+        <button value="cancel" class="text-button">Cancel</button>
+        <button id="add-confirm" value="ok" class="text-button" hidden>Add</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <audio id="audio" preload="none"></audio>
+  <script src="app.js"></script>
+</body>
+</html>
