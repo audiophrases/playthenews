@@ -28,11 +28,12 @@ Write-Host "==> linking resources"
 & "$BT\aapt2.exe" link -o "$B\app-res.apk" -I $ANDROID `
     --manifest "$P\AndroidManifest.xml" `
     --min-sdk-version 21 --target-sdk-version 36 `
+    --java "$B\gen" `
     "$B\res.zip"
 if ($LASTEXITCODE) { throw "aapt2 link failed" }
 
 Write-Host "==> compiling java"
-$sources = @(Get-ChildItem "$P\src" -Recurse -Filter *.java | ForEach-Object { $_.FullName })
+$sources = @(Get-ChildItem "$P\src","$B\gen" -Recurse -Filter *.java | ForEach-Object { $_.FullName })
 $javacArgs = @('--release','11','-nowarn','-classpath',$ANDROID,'-d',"$B\classes") + $sources
 & javac $javacArgs
 if ($LASTEXITCODE) { throw "javac failed" }

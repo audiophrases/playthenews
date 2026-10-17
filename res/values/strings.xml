@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Play the News</string>
+    <string name="previous">Previous</string>
+    <string name="rewind">Back 15 seconds</string>
+    <string name="play_pause">Play or pause</string>
+    <string name="forward">Forward 30 seconds</string>
+    <string name="next">Next</string>
+    <string name="stop">Stop</string>
+    <string name="up_next">Queue</string>
 </resources>
