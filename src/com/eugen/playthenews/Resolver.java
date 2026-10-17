@@ -11,6 +11,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /** Turns a {@link Source} into its latest playable episode. Blocking: call off the main thread. */
 final class Resolver {
@@ -22,17 +26,26 @@ final class Resolver {
     private static final int TIMEOUT_MS = 15000;
     private static final int MAX_REDIRECTS = 6;
 
+    /** RSS uses RFC 822 dates ("+0200" or "GMT" style); Atom uses ISO 8601. */
+    private static final String[] DATE_PATTERNS = {
+            "EEE, d MMM yyyy HH:mm:ss Z", "EEE, d MMM yyyy HH:mm:ss z", "EEE, d MMM yyyy HH:mm Z",
+            "d MMM yyyy HH:mm:ss Z", "yyyy-MM-dd'T'HH:mm:ssZ",
+    };
+
     static final class Episode {
         final String title;
         final String audioUrl;
         final String artUrl;
         final long durationMs;
+        /** When the episode came out (ms since epoch), or 0 if the source doesn't say. */
+        final long publishedAt;
 
-        Episode(String title, String audioUrl, String artUrl, long durationMs) {
+        Episode(String title, String audioUrl, String artUrl, long durationMs, long publishedAt) {
             this.title = title;
             this.audioUrl = audioUrl;
             this.artUrl = artUrl;
             this.durationMs = durationMs;
+            this.publishedAt = publishedAt;
         }
     }
 
@@ -51,12 +64,14 @@ final class Resolver {
         if (catalog == null) throw new IOException("Google news catalog not loaded");
         Catalog.Item item = catalog.find(s.url, s.name);
         if (item == null) throw new IOException(s.name + " is not in today's Google news");
-        return new Episode(item.subtitle, item.audioUrl(), item.iconUri, 0);
+        // Google's catalog has no dates; the audio file's Last-Modified is when it was published.
+        return new Episode(item.subtitle, item.audioUrl(), item.iconUri, 0,
+                lastModified(item.audioUrl()));
     }
 
     // ---- RSS ------------------------------------------------------------------------------
 
-    /** Reads the channel image and the first item's title, enclosure, duration and image. */
+    /** Reads the channel image and the first item's title, enclosure, duration, image and date. */
     static Episode parseRss(byte[] xml) throws IOException {
         try {
             XmlPullParser p = Xml.newPullParser();
@@ -64,7 +79,8 @@ final class Resolver {
             p.setInput(new ByteArrayInputStream(xml), null);
 
             boolean inItem = false;
-            String channelArt = null, title = null, audio = null, itemArt = null, duration = null;
+            String channelArt = null, title = null, audio = null, itemArt = null, duration = null,
+                    date = null;
             for (int ev = p.getEventType(); ev != XmlPullParser.END_DOCUMENT; ev = p.next()) {
                 if (ev == XmlPullParser.START_TAG) {
                     String tag = p.getName();
@@ -79,6 +95,10 @@ final class Resolver {
                         title = p.nextText().trim();
                     } else if (inItem && "itunes:duration".equals(tag)) {
                         duration = p.nextText().trim();
+                    } else if (inItem && date == null && ("pubDate".equals(tag)
+                            || "published".equals(tag) || "updated".equals(tag)
+                            || "dc:date".equals(tag))) {
+                        date = p.nextText().trim();
                     } else if (inItem && ("enclosure".equals(tag) || "media:content".equals(tag))
                             && audio == null) {
                         String type = p.getAttributeValue(null, "type");
@@ -94,11 +114,12 @@ final class Resolver {
                     title = null;
                     itemArt = null;
                     duration = null;
+                    date = null;
                 }
             }
             if (audio == null) throw new IOException("Feed has no audio episode");
             return new Episode(title, audio, itemArt != null ? itemArt : channelArt,
-                    parseDuration(duration));
+                    parseDuration(duration), parseDate(date));
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
@@ -118,7 +139,8 @@ final class Resolver {
             if (poster != null && poster.startsWith("/")) poster = "https://www.raiplaysound.it" + poster;
             return new Episode(card.optString("title", audio.optString("title")),
                     finalUrl(audio.getString("url")), poster,
-                    parseDuration(audio.optString("duration", null)));
+                    parseDuration(audio.optString("duration", null)),
+                    parseRaiDate(card.optString("create_date", null), card.optString("create_time", null)));
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
@@ -148,9 +170,26 @@ final class Resolver {
         return result;
     }
 
+    /** The server's Last-Modified time for url, or 0 if it doesn't say or can't be reached. */
+    private static long lastModified(String url) {
+        try {
+            HttpURLConnection c = open(url, "HEAD");
+            long t = c.getLastModified();
+            c.disconnect();
+            return t;
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+
     private static HttpURLConnection open(String url) throws IOException {
+        return open(url, "GET");
+    }
+
+    private static HttpURLConnection open(String url, String method) throws IOException {
         for (int i = 0; i < MAX_REDIRECTS; i++) {
             HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+            c.setRequestMethod(method);
             c.setInstanceFollowRedirects(false);
             c.setConnectTimeout(TIMEOUT_MS);
             c.setReadTimeout(TIMEOUT_MS);
@@ -182,6 +221,36 @@ final class Resolver {
             return 0;
         }
         return total * 1000;
+    }
+
+    /** An RSS or Atom item date as ms since epoch; 0 if missing or unreadable. */
+    static long parseDate(String s) {
+        if (s == null || s.isEmpty()) return 0;
+        if (s.length() > 10 && s.charAt(10) == 'T') {
+            // ISO 8601: drop fractions and the offset's colon, which "Z" can't read before API 24.
+            s = s.replaceFirst("\\.\\d+", "").replaceFirst("Z$", "+0000")
+                    .replaceFirst("([+-]\\d\\d):(\\d\\d)$", "$1$2");
+        }
+        for (String pattern : DATE_PATTERNS) {
+            try {
+                return new SimpleDateFormat(pattern, Locale.US).parse(s).getTime();
+            } catch (ParseException e) {
+                // try the next pattern
+            }
+        }
+        return 0;
+    }
+
+    /** RaiPlay Sound's "17-10-2026" and "17:12", in Italian time. */
+    private static long parseRaiDate(String date, String time) {
+        if (date == null) return 0;
+        SimpleDateFormat f = new SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.US);
+        f.setTimeZone(TimeZone.getTimeZone("Europe/Rome"));
+        try {
+            return f.parse(date + " " + (time != null ? time : "00:00")).getTime();
+        } catch (ParseException e) {
+            return 0;
+        }
     }
 
     private Resolver() {}

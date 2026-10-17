@@ -261,7 +261,7 @@ public class PlayNewsActivity extends Activity {
             case PlaybackState.STATE_PLAYING: setStatus("Playing"); break;
             case PlaybackState.STATE_PAUSED: setStatus("Paused"); break;
             case PlaybackState.STATE_BUFFERING: setStatus("Loading…"); break;
-            case PlaybackState.STATE_CONNECTING: setStatus("Loading Google news…"); break;
+            case PlaybackState.STATE_CONNECTING: setStatus("Checking for the latest news…"); break;
             case PlaybackState.STATE_STOPPED: setStatus("Stopped"); break;
             case PlaybackState.STATE_ERROR:
                 CharSequence msg = s.getErrorMessage();

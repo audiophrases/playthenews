@@ -13,17 +13,18 @@ public final class R {
     public static final int bg_art=0x7f010001;
     public static final int bg_chip=0x7f010002;
     public static final int bg_play=0x7f010003;
-    public static final int ic_back=0x7f010004;
-    public static final int ic_close=0x7f010005;
-    public static final int ic_down=0x7f010006;
-    public static final int ic_forward=0x7f010007;
-    public static final int ic_next=0x7f010008;
-    public static final int ic_pause=0x7f010009;
-    public static final int ic_play=0x7f01000a;
-    public static final int ic_prev=0x7f01000b;
-    public static final int ic_rewind=0x7f01000c;
-    public static final int ic_stop=0x7f01000d;
-    public static final int ic_up=0x7f01000e;
+    public static final int bg_toggle=0x7f010004;
+    public static final int ic_back=0x7f010005;
+    public static final int ic_close=0x7f010006;
+    public static final int ic_down=0x7f010007;
+    public static final int ic_forward=0x7f010008;
+    public static final int ic_next=0x7f010009;
+    public static final int ic_pause=0x7f01000a;
+    public static final int ic_play=0x7f01000b;
+    public static final int ic_prev=0x7f01000c;
+    public static final int ic_rewind=0x7f01000d;
+    public static final int ic_stop=0x7f01000e;
+    public static final int ic_up=0x7f01000f;
   }
   public static final class id {
     public static final int add=0x7f020000;
@@ -37,17 +38,19 @@ public final class R {
     public static final int hint=0x7f020008;
     public static final int list=0x7f020009;
     public static final int next=0x7f02000a;
-    public static final int play_pause=0x7f02000b;
-    public static final int prev=0x7f02000c;
-    public static final int queue=0x7f02000d;
-    public static final int queue_label=0x7f02000e;
-    public static final int reset=0x7f02000f;
-    public static final int rewind=0x7f020010;
-    public static final int seek=0x7f020011;
-    public static final int status=0x7f020012;
-    public static final int stop=0x7f020013;
-    public static final int subtitle=0x7f020014;
-    public static final int title=0x7f020015;
+    public static final int order_mine=0x7f02000b;
+    public static final int order_newest=0x7f02000c;
+    public static final int play_pause=0x7f02000d;
+    public static final int prev=0x7f02000e;
+    public static final int queue=0x7f02000f;
+    public static final int queue_label=0x7f020010;
+    public static final int reset=0x7f020011;
+    public static final int rewind=0x7f020012;
+    public static final int seek=0x7f020013;
+    public static final int status=0x7f020014;
+    public static final int stop=0x7f020015;
+    public static final int subtitle=0x7f020016;
+    public static final int title=0x7f020017;
   }
   public static final class layout {
     public static final int activity_edit=0x7f030000;
@@ -61,22 +64,26 @@ public final class R {
     public static final int app_name=0x7f050001;
     public static final int back=0x7f050002;
     public static final int edit_hint=0x7f050003;
-    public static final int edit_list=0x7f050004;
-    public static final int forward=0x7f050005;
-    public static final int move_down=0x7f050006;
-    public static final int move_up=0x7f050007;
-    public static final int my_list=0x7f050008;
-    public static final int next=0x7f050009;
-    public static final int play_pause=0x7f05000a;
-    public static final int previous=0x7f05000b;
-    public static final int remove=0x7f05000c;
-    public static final int reset=0x7f05000d;
-    public static final int rewind=0x7f05000e;
-    public static final int stop=0x7f05000f;
-    public static final int up_next=0x7f050010;
+    public static final int edit_hint_newest=0x7f050004;
+    public static final int edit_list=0x7f050005;
+    public static final int forward=0x7f050006;
+    public static final int move_down=0x7f050007;
+    public static final int move_up=0x7f050008;
+    public static final int my_list=0x7f050009;
+    public static final int next=0x7f05000a;
+    public static final int order_mine=0x7f05000b;
+    public static final int order_newest=0x7f05000c;
+    public static final int play_pause=0x7f05000d;
+    public static final int previous=0x7f05000e;
+    public static final int remove=0x7f05000f;
+    public static final int reset=0x7f050010;
+    public static final int rewind=0x7f050011;
+    public static final int stop=0x7f050012;
+    public static final int up_next=0x7f050013;
   }
   public static final class style {
     public static final int ControlButton=0x7f060000;
-    public static final int PlayerTheme=0x7f060001;
+    public static final int OrderChip=0x7f060001;
+    public static final int PlayerTheme=0x7f060002;
   }
 }

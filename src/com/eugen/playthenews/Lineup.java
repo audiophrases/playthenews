@@ -8,17 +8,46 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-/** The user's own ordered list of sources ("My list"), stored in SharedPreferences. */
+/**
+ * The user's own ordered list of sources ("My list") and how it plays: in that order, or newest
+ * bulletin first. Both are stored in SharedPreferences.
+ */
 final class Lineup {
 
     private static final String TAG = "PlayTheNews";
     private static final String PREFS = "lineup";
     private static final String KEY = "sources";
+    private static final String KEY_NEWEST_FIRST = "newest_first";
 
     static boolean exists(Context c) {
         return prefs(c).contains(KEY);
+    }
+
+    static boolean newestFirst(Context c) {
+        return prefs(c).getBoolean(KEY_NEWEST_FIRST, false);
+    }
+
+    static void setNewestFirst(Context c, boolean on) {
+        prefs(c).edit().putBoolean(KEY_NEWEST_FIRST, on).apply();
+    }
+
+    /**
+     * The sources ordered by their latest episode, newest first. Sources with no known date go
+     * last, in their saved order (the sort is stable).
+     */
+    static List<Source> byNewest(List<Source> sources, Map<String, Resolver.Episode> latest) {
+        List<Source> out = new ArrayList<>(sources);
+        Collections.sort(out, (a, b) -> Long.compare(publishedAt(b, latest), publishedAt(a, latest)));
+        return out;
+    }
+
+    private static long publishedAt(Source s, Map<String, Resolver.Episode> latest) {
+        Resolver.Episode e = latest.get(s.id());
+        return e != null ? e.publishedAt : 0;
     }
 
     static List<Source> load(Context c) {

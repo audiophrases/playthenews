@@ -2,10 +2,10 @@
 $ErrorActionPreference = "Stop"
 
 $SDK     = "C:\Users\Admin\AppData\Local\Android\Sdk"
-$BT      = "$SDK\build-tools\37.0.0"
-$ANDROID = "$SDK\platforms\android-36\android.jar"
+$BT      = "$SDK\build-tools\36.1.0"
+$ANDROID = "$SDK\platforms\android-36.1\android.jar"
 $KEYTOOL = "C:\Program Files\Java\jdk-26.0.1\bin\keytool.exe"
-$P       = "c:\Users\Admin\playthenews"
+$P       = $PSScriptRoot
 $B       = "$P\build"
 $KS      = "$P\playthenews.keystore"
 

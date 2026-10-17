@@ -22,18 +22,31 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Edits "My list": add sources (Google's or the built-in directory), remove, reorder. */
+/**
+ * Edits "My list": add sources (Google's or the built-in directory), remove, reorder, and choose
+ * whether it plays in that order or newest bulletin first.
+ */
 public class EditListActivity extends Activity {
 
     private PlayerService service;
+    /** The list in the user's own order, as saved. */
     private final List<Source> entries = new ArrayList<>();
+    /** What the screen shows, in play order: entries itself, or entries sorted newest first. */
+    private List<Source> rows = entries;
+    /** Latest episode per source id, for sorting and showing ages in newest-first mode. */
+    private Map<String, Resolver.Episode> latest = new HashMap<>();
+    private boolean newestFirst;
+    private boolean checking;
+    private int latestRequest;
     private EntryAdapter adapter;
+    private TextView hint, orderMine, orderNewest;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +56,14 @@ public class EditListActivity extends Activity {
         entries.addAll(Lineup.load(this));
         adapter = new EntryAdapter();
         ((ListView) findViewById(R.id.list)).setAdapter(adapter);
+
+        newestFirst = Lineup.newestFirst(this);
+        hint = findViewById(R.id.hint);
+        orderMine = findViewById(R.id.order_mine);
+        orderNewest = findViewById(R.id.order_newest);
+        orderMine.setOnClickListener(v -> setNewestFirst(false));
+        orderNewest.setOnClickListener(v -> setNewestFirst(true));
+        showOrder();
 
         findViewById(R.id.back).setOnClickListener(v -> finish());
         findViewById(R.id.add).setOnClickListener(v -> chooseGroup());
@@ -74,6 +95,7 @@ public class EditListActivity extends Activity {
             service = ((PlayerService.LocalBinder) binder).get();
             service.addListener(catalogListener);
             seedIfNeeded();
+            refreshLatest();
         }
 
         @Override
@@ -101,8 +123,9 @@ public class EditListActivity extends Activity {
 
     private void save() {
         Lineup.save(this, entries);
-        adapter.notifyDataSetChanged();
+        refreshRows();
         if (service != null) service.onLineupEdited();
+        refreshLatest();
     }
 
     private void move(int i, int delta) {
@@ -112,9 +135,65 @@ public class EditListActivity extends Activity {
         save();
     }
 
-    private void remove(int i) {
-        entries.remove(i);
+    private void remove(Source s) {
+        entries.remove(s);
         save();
+    }
+
+    // ---- play order -----------------------------------------------------------------------
+
+    private void setNewestFirst(boolean on) {
+        if (on == newestFirst) return;
+        newestFirst = on;
+        Lineup.setNewestFirst(this, on);
+        showOrder();
+        refreshRows();
+        if (service != null) service.onLineupEdited();
+        refreshLatest();
+    }
+
+    private void showOrder() {
+        orderMine.setSelected(!newestFirst);
+        orderNewest.setSelected(newestFirst);
+        hint.setText(newestFirst ? R.string.edit_hint_newest : R.string.edit_hint);
+    }
+
+    private void refreshRows() {
+        rows = newestFirst ? Lineup.byNewest(entries, latest) : entries;
+        adapter.notifyDataSetChanged();
+    }
+
+    /** Newest first needs every source's latest bulletin; the service resolves (and caches) them. */
+    private void refreshLatest() {
+        if (service == null || !newestFirst || entries.isEmpty()) return;
+        final int request = ++latestRequest;
+        checking = true;
+        refreshRows();
+        service.fetchLatest(new ArrayList<>(entries), found -> {
+            if (request != latestRequest) return;
+            latest = found;
+            checking = false;
+            refreshRows();
+            // The playing queue sorted with what was known then; bring it in line with the screen.
+            if (service != null) service.onLineupEdited();
+        });
+    }
+
+    private String subtitle(Source s) {
+        if (!newestFirst) return s.label();
+        Resolver.Episode e = latest.get(s.id());
+        if (e != null && e.publishedAt > 0) return s.label() + "  ·  " + age(e.publishedAt);
+        return checking ? s.label() + "  ·  checking…" : s.label();
+    }
+
+    /** "just now", "25 min ago", "3 h ago", "2 days ago". */
+    private static String age(long time) {
+        long min = (System.currentTimeMillis() - time) / 60000;
+        if (min < 1) return "just now";
+        if (min < 60) return min + " min ago";
+        if (min < 24 * 60) return (min / 60) + " h ago";
+        long days = min / (24 * 60);
+        return days == 1 ? "1 day ago" : days + " days ago";
     }
 
     private void resetToDefault() {
@@ -201,23 +280,27 @@ public class EditListActivity extends Activity {
     // ---- rows -----------------------------------------------------------------------------
 
     private class EntryAdapter extends BaseAdapter {
-        @Override public int getCount() { return entries.size(); }
-        @Override public Object getItem(int i) { return entries.get(i); }
+        @Override public int getCount() { return rows.size(); }
+        @Override public Object getItem(int i) { return rows.get(i); }
         @Override public long getItemId(int i) { return i; }
 
         @Override
         public View getView(final int i, View convert, ViewGroup parent) {
             Row row = convert != null ? (Row) convert.getTag() : new Row();
-            Source s = entries.get(i);
+            final Source s = rows.get(i);
             row.title.setText((i + 1) + ".  " + s.name);
-            row.subtitle.setText(s.label());
+            row.subtitle.setText(subtitle(s));
+            // Newest first sets the order itself; moving only applies to the user's own order.
+            int arrows = newestFirst ? View.GONE : View.VISIBLE;
+            row.up.setVisibility(arrows);
+            row.down.setVisibility(arrows);
             row.up.setEnabled(i > 0);
             row.up.setAlpha(i > 0 ? 1f : 0.3f);
             row.down.setEnabled(i < entries.size() - 1);
             row.down.setAlpha(i < entries.size() - 1 ? 1f : 0.3f);
             row.up.setOnClickListener(v -> move(i, -1));
             row.down.setOnClickListener(v -> move(i, 1));
-            row.remove.setOnClickListener(v -> remove(i));
+            row.remove.setOnClickListener(v -> remove(s));
             return row.root;
         }
     }

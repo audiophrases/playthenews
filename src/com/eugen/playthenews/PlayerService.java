@@ -73,6 +73,9 @@ public class PlayerService extends Service {
     private static final long CATALOG_MAX_AGE_MS = 20 * 60 * 1000;
     private static final long CATALOG_WAIT_S = 15;
     private static final int ART_SIZE_PX = 512;
+    private static final int LATEST_THREADS = 8;
+    /** Newest-first waits at most this long for every source; slower ones are sorted last. */
+    private static final long LATEST_WAIT_MS = 12000;
 
     private static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE
             | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
@@ -85,6 +88,11 @@ public class PlayerService extends Service {
         void onCatalogChanged();
     }
 
+    /** Gets each source's latest episode, by source id, on the main thread. */
+    interface LatestCallback {
+        void onLatest(Map<String, Resolver.Episode> latest);
+    }
+
     final class LocalBinder extends Binder {
         PlayerService get() { return PlayerService.this; }
     }
@@ -92,6 +100,8 @@ public class PlayerService extends Service {
     private final IBinder binder = new LocalBinder();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
+    /** Resolves many sources at once, for sorting by date. */
+    private final ExecutorService fetchers = Executors.newFixedThreadPool(LATEST_THREADS);
     private final List<Listener> listeners = new ArrayList<>();
 
     private MediaSession session;
@@ -180,6 +190,7 @@ public class PlayerService extends Service {
         session.release();
         if (browser != null && browser.isConnected()) browser.disconnect();
         worker.shutdownNow();
+        fetchers.shutdownNow();
         super.onDestroy();
     }
 
@@ -212,12 +223,66 @@ public class PlayerService extends Service {
             }
             Lineup.save(this, catalog.defaultLineup());
         }
-        List<Source> list = Lineup.load(this);
+        final List<Source> list = Lineup.load(this);
         if (list.isEmpty()) {
             toast("Your list is empty. Tap Edit to add sources.");
             return;
         }
-        playQueue(list, MY_LIST, start);
+        if (!Lineup.newestFirst(this)) {
+            playQueue(list, MY_LIST, start);
+            return;
+        }
+        // The order depends on every source's latest bulletin, so check them all first.
+        final int token = ++playToken;
+        releasePlayer();
+        index = -1;
+        episode = null;
+        art = null;
+        publishMetadata();
+        setState(PlaybackState.STATE_CONNECTING);
+        fetchLatest(list, latest -> {
+            if (token == playToken) playQueue(Lineup.byNewest(list, latest), MY_LIST, start);
+        });
+    }
+
+    /**
+     * Resolves the latest episode of every source in parallel (cached ones are instant) and calls
+     * back once on the main thread, when all are done or after {@link #LATEST_WAIT_MS}. Sources
+     * that failed or were too slow are missing from the result.
+     */
+    void fetchLatest(List<Source> sources, final LatestCallback cb) {
+        final Map<String, Resolver.Episode> found = new HashMap<>();
+        final int[] pending = {sources.size()};
+        final Runnable deliver = new Runnable() {
+            private boolean delivered;
+
+            @Override public void run() {
+                if (delivered) return;
+                delivered = true;
+                handler.removeCallbacks(this);
+                cb.onLatest(new HashMap<>(found));
+            }
+        };
+        if (sources.isEmpty()) {
+            handler.post(deliver);
+            return;
+        }
+        handler.postDelayed(deliver, LATEST_WAIT_MS);
+        for (final Source src : sources) {
+            fetchers.execute(() -> {
+                Resolver.Episode ep = null;
+                try {
+                    ep = resolveCached(src);
+                } catch (Exception e) {
+                    Log.i(TAG, "could not check " + src.name + ": " + e);
+                }
+                final Resolver.Episode result = ep;
+                handler.post(() -> {
+                    if (result != null) found.put(src.id(), result);
+                    if (--pending[0] == 0) deliver.run();
+                });
+            });
+        }
     }
 
     void playCategory(Catalog.Category category) {
@@ -228,11 +293,15 @@ public class PlayerService extends Service {
         playQueue(list, category.name, 0);
     }
 
-    /** Called after My list was edited: keeps the current item playing within the new order. */
+    /**
+     * Called after My list or its play order was edited: keeps the current item playing within
+     * the new order. Newest first sorts by the episodes resolved so far.
+     */
     void onLineupEdited() {
         if (!MY_LIST.equals(queueTitle) || index < 0) return;
         String currentId = queue.get(index).id();
         List<Source> list = Lineup.load(this);
+        if (Lineup.newestFirst(this)) list = Lineup.byNewest(list, cachedEpisodes());
         int newIndex = -1;
         for (int i = 0; i < list.size(); i++) {
             if (list.get(i).id().equals(currentId)) { newIndex = i; break; }
@@ -500,6 +569,12 @@ public class PlayerService extends Service {
             episodeCacheTime.put(src.id(), System.currentTimeMillis());
         }
         return ep;
+    }
+
+    private Map<String, Resolver.Episode> cachedEpisodes() {
+        synchronized (episodeCache) {
+            return new HashMap<>(episodeCache);
+        }
     }
 
     private void prefetch(int i) {

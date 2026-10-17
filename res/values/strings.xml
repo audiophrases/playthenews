@@ -11,6 +11,9 @@
     <string name="edit_list">Edit list</string>
     <string name="my_list">My news list</string>
     <string name="edit_hint">Plays top to bottom. Each source plays its latest bulletin.</string>
+    <string name="edit_hint_newest">The most recently updated sources play first. Your own order is kept for when you switch back.</string>
+    <string name="order_mine">My order</string>
+    <string name="order_newest">Newest first</string>
     <string name="add_sources">Add sources</string>
     <string name="reset">Reset</string>
     <string name="move_up">Move up</string>
