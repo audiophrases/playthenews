@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.eugen.playthenews.callers"
+    android:versionCode="1"
+    android:versionName="1.0">
+
+    <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="36" />
+
+    <application
+        android:hasCode="false"
+        android:label="News Media Browser Caller Allowlist" />
+
+    <!--
+      Runtime Resource Overlay that replaces the Google app's
+      xml/allowed_media_browser_callers resource so our launcher's package +
+      signing certificate is permitted to browse NewsMediaBrowserService.
+      Original Android Auto entries are preserved unchanged.
+    -->
+    <overlay
+        android:targetPackage="com.google.android.googlequicksearchbox"
+        android:priority="1"
+        android:isStatic="false" />
+</manifest>
