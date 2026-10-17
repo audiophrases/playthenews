@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -104,7 +105,10 @@ public class EditListActivity extends Activity {
         }
     };
 
-    private final PlayerService.Listener catalogListener = this::seedIfNeeded;
+    private final PlayerService.Listener catalogListener = () -> {
+        seedIfNeeded();
+        adapter.notifyDataSetChanged(); // Google flags can depend on the catalog
+    };
 
     /** Before the first edit there is no saved list yet: start from Google's default. */
     private void seedIfNeeded() {
@@ -288,6 +292,10 @@ public class EditListActivity extends Activity {
         public View getView(final int i, View convert, ViewGroup parent) {
             Row row = convert != null ? (Row) convert.getTag() : new Row();
             final Source s = rows.get(i);
+            int flag = Countries.flagRes(Countries.of(s, catalog()));
+            // Invisible rather than gone, so names stay in one column.
+            row.flag.setVisibility(flag != 0 ? View.VISIBLE : View.INVISIBLE);
+            if (flag != 0) row.flag.setImageResource(flag);
             row.title.setText((i + 1) + ".  " + s.name);
             row.subtitle.setText(subtitle(s));
             // Newest first sets the order itself; moving only applies to the user's own order.
@@ -307,6 +315,7 @@ public class EditListActivity extends Activity {
 
     private class Row {
         final LinearLayout root;
+        final ImageView flag;
         final TextView title, subtitle;
         final ImageButton up, down, remove;
 
@@ -315,6 +324,11 @@ public class EditListActivity extends Activity {
             root.setOrientation(LinearLayout.HORIZONTAL);
             root.setGravity(Gravity.CENTER_VERTICAL);
             root.setPadding(dp(8), dp(6), 0, dp(6));
+
+            flag = new ImageView(EditListActivity.this);
+            LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(dp(20), dp(15));
+            flp.rightMargin = dp(12);
+            root.addView(flag, flp);
 
             LinearLayout text = new LinearLayout(EditListActivity.this);
             text.setOrientation(LinearLayout.VERTICAL);

@@ -25,6 +25,7 @@ import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -35,8 +36,10 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,6 +62,9 @@ public class PlayerService extends Service {
     static final String ACTION_STOP = "com.eugen.playthenews.STOP";
 
     static final String MY_LIST = "My list";
+
+    /** Flag code ({@link Countries}) in queue item extras and in the metadata. */
+    static final String EXTRA_COUNTRY = "com.eugen.playthenews.COUNTRY";
 
     private static final String GSA_PKG = "com.google.android.googlequicksearchbox";
     private static final String NEWS_SERVICE =
@@ -532,6 +538,7 @@ public class PlayerService extends Service {
                 .putString(MediaMetadata.METADATA_KEY_TITLE, src.name)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, episode != null ? episode.title : src.label())
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, queueTitle)
+                .putString(EXTRA_COUNTRY, Countries.of(src, catalog))
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, duration);
         if (episode != null && episode.artUrl != null) {
             b.putString(MediaMetadata.METADATA_KEY_ART_URI, episode.artUrl);
@@ -544,8 +551,11 @@ public class PlayerService extends Service {
         List<MediaSession.QueueItem> items = new ArrayList<>();
         for (int i = 0; i < queue.size(); i++) {
             Source s = queue.get(i);
+            Bundle extras = new Bundle();
+            extras.putString(EXTRA_COUNTRY, Countries.of(s, catalog));
             items.add(new MediaSession.QueueItem(new MediaDescription.Builder()
-                    .setMediaId(s.id()).setTitle(s.name).setSubtitle(s.label()).build(), i));
+                    .setMediaId(s.id()).setTitle(s.name).setSubtitle(s.label())
+                    .setExtras(extras).build(), i));
         }
         session.setQueue(items);
         session.setQueueTitle(queueTitle);
@@ -638,7 +648,12 @@ public class PlayerService extends Service {
 
     private void onCatalogLoaded(Catalog c) {
         catalogLoading = false;
-        if (c != null) catalog = c;
+        if (c != null) {
+            catalog = c;
+            logCountries(c);
+            // Google sources not known by name get their flag from the catalog's episode URLs.
+            if (!queue.isEmpty()) publishQueue();
+        }
         catalogReady.countDown();
         for (Listener l : new ArrayList<>(listeners)) l.onCatalogChanged();
         if (pendingMyList) {
@@ -646,6 +661,18 @@ public class PlayerService extends Service {
             if (catalog == null) Lineup.save(this, Collections.<Source>emptyList());
             playMyList(0);
         }
+    }
+
+    /** One line listing each Google source's flag ("?" if unknown), to extend {@link Countries}. */
+    private static void logCountries(Catalog c) {
+        StringBuilder sb = new StringBuilder("flags:");
+        Set<String> seen = new HashSet<>();
+        for (Catalog.Item i : c.items) {
+            if (!seen.add(i.title)) continue;
+            String code = Countries.of(i.toSource(), c);
+            sb.append(' ').append(i.title).append('=').append(code != null ? code : "?").append(';');
+        }
+        Log.i(TAG, sb.toString());
     }
 
     /** Google's episode URLs change through the day; refresh before starting a new queue. */

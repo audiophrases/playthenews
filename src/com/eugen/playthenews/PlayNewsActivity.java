@@ -10,6 +10,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaDescription;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -21,6 +23,10 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.DynamicDrawableSpan;
+import android.text.style.ImageSpan;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -287,7 +293,7 @@ public class PlayNewsActivity extends Activity {
         MediaDescription d = m.getDescription();
         CharSequence t = m.getText(MediaMetadata.METADATA_KEY_TITLE);
         CharSequence sub = m.getText(MediaMetadata.METADATA_KEY_ARTIST);
-        title.setText(t != null ? t : d.getTitle());
+        title.setText(withFlag(t != null ? t : d.getTitle(), m.getString(PlayerService.EXTRA_COUNTRY)));
         subtitle.setText(sub != null ? sub : "");
 
         long dur = m.getLong(MediaMetadata.METADATA_KEY_DURATION);
@@ -376,9 +382,14 @@ public class PlayNewsActivity extends Activity {
                 tv.setPadding(dp(4), dp(12), dp(4), dp(12));
                 tv.setMaxLines(2);
                 tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                tv.setCompoundDrawablePadding(dp(10));
             }
             MediaSession.QueueItem item = queue.get(i);
             MediaDescription d = item.getDescription();
+            Bundle extras = d.getExtras();
+            tv.setCompoundDrawablesRelative(
+                    flag(extras != null ? extras.getString(PlayerService.EXTRA_COUNTRY) : null, true),
+                    null, null, null);
             CharSequence t = d.getTitle();
             CharSequence sub = d.getSubtitle();
             String text = (i + 1) + ".  " + (t != null ? t : "Item " + (i + 1));
@@ -394,6 +405,26 @@ public class PlayNewsActivity extends Activity {
     // ---- helpers --------------------------------------------------------------------------
 
     private void setStatus(CharSequence s) { status.setText(s); }
+
+    /** A 20×15dp flag; for an unknown country null, or a blank of the same size to keep a column. */
+    private Drawable flag(String country, boolean blankIfUnknown) {
+        int res = Countries.flagRes(country);
+        if (res == 0 && !blankIfUnknown) return null;
+        Drawable d = res != 0 ? getDrawable(res) : new ColorDrawable(Color.TRANSPARENT);
+        d.setBounds(0, 0, dp(20), dp(15));
+        return d;
+    }
+
+    /** The now-playing title with its source's flag in front. */
+    private CharSequence withFlag(CharSequence text, String country) {
+        Drawable d = flag(country, false);
+        if (d == null) return text;
+        int align = Build.VERSION.SDK_INT >= 29
+                ? DynamicDrawableSpan.ALIGN_CENTER : DynamicDrawableSpan.ALIGN_BASELINE;
+        SpannableStringBuilder sb = new SpannableStringBuilder("￼  ").append(text);
+        sb.setSpan(new ImageSpan(d, align), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return sb;
+    }
 
     private int dp(int v) {
         return Math.round(v * getResources().getDisplayMetrics().density);
