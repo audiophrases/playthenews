@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -91,12 +92,22 @@ final class Directory {
 
     static String languageName(String code) {
         for (String[] l : LANGUAGES) if (l[0].equals(code)) return l[1];
-        return code;
+        // Feeds added by address or search: the language's own name ("Nederlands") if Android knows it.
+        Locale locale = Locale.forLanguageTag(code == null ? "" : code);
+        String name = locale.getDisplayLanguage(locale);
+        if (name.isEmpty() || name.equalsIgnoreCase(code)) return "Podcast";
+        return name.substring(0, 1).toUpperCase(locale) + name.substring(1);
     }
 
     /** The flag code of a directory source, or null if the directory doesn't list it. */
     static String countryOf(Source s) {
         return COUNTRIES.get(s.id());
+    }
+
+    /** The directory's entry for a feed or program address, or null. */
+    static Source byUrl(String url) {
+        for (Source s : SOURCES) if (s.url.equals(url)) return s;
+        return null;
     }
 
     private static Source rss(String lang, String country, String name, String url) {

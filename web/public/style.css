@@ -286,6 +286,23 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
 
 .dialog-body .feed p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 
+.dialog-body .result { align-items: flex-start; }
+
+.dialog-body .cover {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--chip);
+}
+
+.dialog-body .result-text { min-width: 0; }
+
+.dialog-body .result-name { color: var(--row); }
+
+.dialog-body .result-detail { margin-top: 2px; color: var(--faint); font-size: 12px; }
+
 .dialog-actions { display: flex; justify-content: flex-end; gap: 4px; padding: 8px 12px 12px; }
 
 .text-button {

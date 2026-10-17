@@ -1,5 +1,6 @@
-// Play the News, web version. Serves the player page and turns news sources into their latest
-// episode. Feeds are fetched here because many of them don't let browsers read them directly.
+// Play the News, web version. Serves the player page, turns news sources into their latest
+// episode and searches podcasts. Feeds are fetched here because many of them don't let browsers
+// read them directly.
 //
 //   node web/server.js      then open the address it prints, on this PC or a phone on the same Wi-Fi
 //
@@ -258,6 +259,26 @@ async function resolveRai(programUrl) {
   };
 }
 
+// ---- podcast search ----------------------------------------------------------------------
+
+/** Podcasts by name from Apple's public podcast directory (no account or key needed). */
+async function searchPodcasts(term, country) {
+  const store = /^[a-z]{2}$/i.test(country || '') ? `&country=${country}` : '';
+  const url = 'https://itunes.apple.com/search?media=podcast&entity=podcast&limit=30'
+      + `&term=${encodeURIComponent(term)}${store}`;
+  const { results } = await (await get(url)).json();
+  return results
+      .filter(r => r.feedUrl) // a few listings don't publish their feed
+      .map(r => ({
+        name: r.collectionName,
+        author: r.artistName || '',
+        genre: r.primaryGenreName || '',
+        feedUrl: r.feedUrl,
+        artUrl: r.artworkUrl100 || null,
+        updatedAt: parseDate(r.releaseDate),
+      }));
+}
+
 // ---- latest episode, cached --------------------------------------------------------------
 
 const cache = new Map(); // "kind|url" -> { at, promise }
@@ -295,6 +316,16 @@ async function handle(req, res) {
   if (req.method !== 'GET') return send(res, 405, 'Method not allowed', 'text/plain');
 
   if (u.pathname === '/api/directory') return json(res, 200, directory);
+
+  if (u.pathname === '/api/search') {
+    const term = (u.searchParams.get('q') || '').trim();
+    if (!term) return json(res, 400, { error: 'Nothing to search for' });
+    try {
+      return json(res, 200, await searchPodcasts(term, u.searchParams.get('country')));
+    } catch (e) {
+      return json(res, 502, { error: e.name === 'TimeoutError' ? 'Timed out' : e.message });
+    }
+  }
 
   if (u.pathname === '/api/latest') {
     const kind = u.searchParams.get('kind') === 'rai' ? 'rai' : 'rss';

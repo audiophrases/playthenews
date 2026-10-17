@@ -6,14 +6,21 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -21,18 +28,22 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * Edits "My list": add sources (Google's or the built-in directory), remove, reorder, and choose
- * whether it plays in that order or newest bulletin first.
+ * Edits "My list": add sources (Google's, the built-in directory's, or any podcast by search or
+ * feed address), remove, reorder, and choose whether it plays in that order or newest first.
  */
 public class EditListActivity extends Activity {
 
@@ -46,6 +57,9 @@ public class EditListActivity extends Activity {
     private boolean newestFirst;
     private boolean checking;
     private int latestRequest;
+    private int searchRequest;
+    /** Feed checks and podcast searches. */
+    private final ExecutorService background = Executors.newSingleThreadExecutor();
     private EntryAdapter adapter;
     private TextView hint, orderMine, orderNewest;
 
@@ -74,6 +88,12 @@ public class EditListActivity extends Activity {
                 .setPositiveButton("Reset", (d, w) -> resetToDefault())
                 .setNegativeButton(android.R.string.cancel, null)
                 .show());
+    }
+
+    @Override
+    protected void onDestroy() {
+        background.shutdownNow();
+        super.onDestroy();
     }
 
     @Override
@@ -217,20 +237,21 @@ public class EditListActivity extends Activity {
 
     private void chooseGroup() {
         final List<String> labels = new ArrayList<>();
-        final List<String> codes = new ArrayList<>();
+        final List<Runnable> actions = new ArrayList<>();
         labels.add(GOOGLE_GROUP);
-        codes.add(null);
+        actions.add(this::chooseFromGoogle);
         for (String[] l : Directory.LANGUAGES) {
-            labels.add(l[1] + "  (" + Directory.forLanguage(l[0]).size() + ")");
-            codes.add(l[0]);
+            final String code = l[0];
+            labels.add(l[1] + "  (" + Directory.forLanguage(code).size() + ")");
+            actions.add(() -> chooseSources(Directory.languageName(code), Directory.forLanguage(code), false));
         }
+        labels.add("Search podcasts…");
+        actions.add(this::searchPodcasts);
+        labels.add("Podcast feed address…");
+        actions.add(this::addByAddress);
         new AlertDialog.Builder(this)
                 .setTitle("Add from")
-                .setItems(labels.toArray(new String[0]), (d, which) -> {
-                    String code = codes.get(which);
-                    if (code == null) chooseFromGoogle();
-                    else chooseSources(Directory.languageName(code), Directory.forLanguage(code), false);
-                })
+                .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
                 .show();
     }
 
@@ -279,6 +300,209 @@ public class EditListActivity extends Activity {
                 })
                 .setNegativeButton(android.R.string.cancel, null)
                 .show();
+    }
+
+    // ---- adding any podcast ---------------------------------------------------------------
+
+    private void addByAddress() {
+        final EditText input = dialogInput("https://example.com/podcast.xml",
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, EditorInfo.IME_ACTION_DONE);
+        final TextView status = dialogText("Paste the address of any podcast's RSS feed. "
+                + "It plays the newest episode.");
+        final AlertDialog dialog = showInputDialog("Podcast feed", "Add", input, status, null);
+        final Button add = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        add.setOnClickListener(v -> {
+            String url = input.getText().toString().trim();
+            if (url.isEmpty()) return;
+            if (!url.matches("(?i)https?://.*")) url = "https://" + url;
+            add.setEnabled(false);
+            addFeed(url, null, dialog, status, () -> add.setEnabled(true));
+        });
+        input.setOnEditorActionListener((v, action, e) -> add.performClick());
+    }
+
+    private void searchPodcasts() {
+        final EditText input = dialogInput("Podcast name", InputType.TYPE_CLASS_TEXT,
+                EditorInfo.IME_ACTION_SEARCH);
+        final TextView status = dialogText("Searches Apple's podcast directory.");
+        final List<PodcastSearch.Result> found = new ArrayList<>();
+        final ResultAdapter results = new ResultAdapter(found);
+        final ListView list = new ListView(this);
+        list.setAdapter(results);
+        final AlertDialog dialog = showInputDialog("Search podcasts", "Search", input, status, list);
+        final boolean[] busy = {false};
+
+        final Runnable search = () -> {
+            final String term = input.getText().toString().trim();
+            if (term.isEmpty() || busy[0]) return;
+            final int request = ++searchRequest;
+            status.setText("Searching…");
+            ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
+                    .hideSoftInputFromWindow(input.getWindowToken(), 0);
+            background.execute(() -> {
+                try {
+                    final List<PodcastSearch.Result> r = PodcastSearch.search(term);
+                    onUi(() -> {
+                        if (request != searchRequest) return;
+                        found.clear();
+                        found.addAll(r);
+                        results.notifyDataSetChanged();
+                        list.setSelection(0);
+                        status.setText(r.isEmpty() ? "No podcasts found." : "Tap one to add it.");
+                    });
+                } catch (IOException e) {
+                    onUi(() -> { if (request == searchRequest) status.setText("Search failed: " + e.getMessage()); });
+                }
+            });
+        };
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> search.run());
+        input.setOnEditorActionListener((v, action, e) -> {
+            search.run();
+            return true;
+        });
+        list.setOnItemClickListener((p, v, pos, id) -> {
+            if (busy[0]) return;
+            PodcastSearch.Result r = found.get(pos);
+            busy[0] = true;
+            addFeed(r.feedUrl, r.name, dialog, status, () -> busy[0] = false);
+        });
+    }
+
+    /**
+     * Checks that url is a podcast feed with audio and adds it. A feed the directory lists is
+     * added as the directory has it; any other gets its language and flag from the feed itself.
+     */
+    private void addFeed(final String url, final String name, final AlertDialog dialog,
+            final TextView status, final Runnable onFailure) {
+        final Source listed = Directory.byUrl(url);
+        String id = listed != null ? listed.id() : Source.RSS + "|" + url;
+        for (Source s : entries) {
+            if (s.id().equals(id)) {
+                status.setText(s.name + " is already in your list.");
+                onFailure.run();
+                return;
+            }
+        }
+        status.setText(name != null ? "Checking " + name + "…" : "Checking…");
+        background.execute(() -> {
+            try {
+                final Source added;
+                if (listed != null) {
+                    added = listed;
+                } else {
+                    Resolver.Feed feed = Resolver.readFeed(url);
+                    String title = name != null ? name
+                            : feed.title != null && !feed.title.isEmpty() ? feed.title : Uri.parse(url).getHost();
+                    String lang = feed.language == null ? ""
+                            : feed.language.toLowerCase(Locale.ROOT).split("[-_]")[0];
+                    added = new Source(Source.RSS, title, lang, url, Countries.guess(feed.language, url));
+                }
+                onUi(() -> {
+                    dialog.dismiss();
+                    entries.add(added);
+                    save();
+                    ((ListView) findViewById(R.id.list)).smoothScrollToPosition(entries.size() - 1);
+                    toast("Added " + added.name);
+                });
+            } catch (Exception e) {
+                onUi(() -> {
+                    status.setText("That doesn't look like a podcast feed: " + e.getMessage());
+                    onFailure.run();
+                });
+            }
+        });
+    }
+
+    /** Runs on the main thread, unless the screen has gone in the meantime. */
+    private void onUi(Runnable r) {
+        runOnUiThread(() -> { if (!isDestroyed()) r.run(); });
+    }
+
+    private EditText dialogInput(String hint, int inputType, int imeAction) {
+        EditText input = new EditText(this);
+        input.setSingleLine();
+        input.setHint(hint);
+        input.setInputType(inputType);
+        input.setImeOptions(imeAction);
+        return input;
+    }
+
+    private TextView dialogText(String text) {
+        TextView t = new TextView(this);
+        t.setText(text);
+        t.setTextColor(0xFFB0B0B8);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        t.setPadding(dp(4), dp(8), dp(4), dp(4));
+        return t;
+    }
+
+    /**
+     * A dialog with an input, a status line and optionally a list. Its positive button is wired
+     * by the caller, so a failed check can keep the dialog open.
+     */
+    private AlertDialog showInputDialog(String title, String action, EditText input, TextView status,
+            View below) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), 0);
+        box.addView(input);
+        box.addView(status);
+        if (below != null) {
+            box.addView(below, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(340)));
+        }
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setView(box)
+                .setPositiveButton(action, null)
+                .setNegativeButton(android.R.string.cancel, null)
+                .create();
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        dialog.show();
+        input.requestFocus();
+        return dialog;
+    }
+
+    /** Search results: name, then author, genre and how recent the newest episode is. */
+    private class ResultAdapter extends BaseAdapter {
+        private final List<PodcastSearch.Result> results;
+
+        ResultAdapter(List<PodcastSearch.Result> results) {
+            this.results = results;
+        }
+
+        @Override public int getCount() { return results.size(); }
+        @Override public Object getItem(int i) { return results.get(i); }
+        @Override public long getItemId(int i) { return i; }
+
+        @Override
+        public View getView(int i, View convert, ViewGroup parent) {
+            LinearLayout row = (LinearLayout) convert;
+            if (row == null) {
+                row = new LinearLayout(EditListActivity.this);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(dp(4), dp(10), dp(4), dp(10));
+                TextView name = new TextView(EditListActivity.this);
+                name.setTextColor(0xFFE0E0E6);
+                name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                name.setMaxLines(2);
+                name.setEllipsize(TextUtils.TruncateAt.END);
+                TextView detail = new TextView(EditListActivity.this);
+                detail.setTextColor(0xFF8A8A92);
+                detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+                detail.setMaxLines(1);
+                detail.setEllipsize(TextUtils.TruncateAt.END);
+                row.addView(name);
+                row.addView(detail);
+            }
+            PodcastSearch.Result r = results.get(i);
+            List<String> parts = new ArrayList<>();
+            if (!r.author.isEmpty()) parts.add(r.author);
+            if (!r.genre.isEmpty()) parts.add(r.genre);
+            if (r.updatedAt > 0) parts.add("updated " + age(r.updatedAt));
+            ((TextView) row.getChildAt(0)).setText(r.name);
+            ((TextView) row.getChildAt(1)).setText(TextUtils.join("  ·  ", parts));
+            return row;
+        }
     }
 
     // ---- rows -----------------------------------------------------------------------------

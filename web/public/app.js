@@ -464,7 +464,84 @@ function showGroups() {
         b.append(el('span', 'count', `(${n})`));
         return b;
       }),
+      choice('Search podcasts…', showSearch),
       choice('Podcast feed address…', showFeedForm));
+}
+
+/** Confirm button for the current step: "Add", or "Search" while searching. */
+function showConfirm(text) {
+  $('add-confirm').hidden = false;
+  $('add-confirm').disabled = false;
+  $('add-confirm').textContent = text;
+}
+
+/** A text input that acts on Enter itself: the form's own Enter would press Cancel. */
+function dialogInput(type, id, placeholder, onEnter) {
+  const input = document.createElement('input');
+  input.type = type;
+  input.id = id;
+  input.placeholder = placeholder;
+  input.autocomplete = 'off';
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onEnter();
+    }
+  });
+  return input;
+}
+
+function showSearch() {
+  addMode = 'search';
+  $('add-title').textContent = 'Search podcasts';
+  showConfirm('Search');
+  const box = el('div', 'feed');
+  const input = dialogInput('search', 'search-term', 'Podcast name', runSearch);
+  const help = el('p', '', "Searches Apple's podcast directory.");
+  help.id = 'feed-help';
+  box.append(input, help);
+  const results = el('div', 'results');
+  results.id = 'results';
+  $('add-body').replaceChildren(box, results);
+  input.focus();
+}
+
+let searchRequest = 0;
+
+/** The store to search: the browser's region ("ca-ES" -> es), else Apple's default. */
+const storeCountry = () => ((navigator.language || '').split('-')[1] || '').toLowerCase();
+
+async function runSearch() {
+  const term = $('search-term').value.trim();
+  if (!term) return;
+  const request = ++searchRequest;
+  $('feed-help').textContent = 'Searching…';
+  $('search-term').blur(); // lets the phone keyboard go so the results show
+  let found;
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(term)}&country=${storeCountry()}`);
+    found = await res.json();
+    if (!res.ok) throw new Error(found.error || `HTTP ${res.status}`);
+  } catch (e) {
+    if (request === searchRequest) $('feed-help').textContent = `Search failed: ${e.message}`;
+    return;
+  }
+  if (request !== searchRequest || addMode !== 'search') return;
+  $('feed-help').textContent = found.length ? 'Tap one to add it.' : 'No podcasts found.';
+  $('results').replaceChildren(...found.map(r => {
+    const b = choice('', () => addFeed(r.feedUrl, r.name));
+    b.classList.add('result');
+    const cover = el('img', 'cover');
+    cover.src = r.artUrl || '/icon.png';
+    cover.alt = '';
+    cover.loading = 'lazy';
+    const detail = [r.author, r.genre, r.updatedAt ? `updated ${age(r.updatedAt)}` : '']
+        .filter(Boolean).join('  ·  ');
+    const text = el('div', 'result-text');
+    text.append(el('div', 'result-name', r.name), el('div', 'result-detail', detail));
+    b.append(cover, text);
+    return b;
+  }));
 }
 
 function showSources(lang) {
@@ -476,8 +553,7 @@ function showSources(lang) {
   }
   addMode = 'sources';
   $('add-title').textContent = lang.name;
-  $('add-confirm').hidden = false;
-  $('add-confirm').disabled = false;
+  showConfirm('Add');
   $('add-body').replaceChildren(...addCandidates.map((s, i) => {
     const row = el('label', 'choice');
     const box = document.createElement('input');
@@ -491,21 +567,9 @@ function showSources(lang) {
 function showFeedForm() {
   addMode = 'feed';
   $('add-title').textContent = 'Podcast feed';
-  $('add-confirm').hidden = false;
-  $('add-confirm').disabled = false;
+  showConfirm('Add');
   const box = el('div', 'feed');
-  const input = document.createElement('input');
-  input.type = 'url';
-  input.id = 'feed-url';
-  input.placeholder = 'https://example.com/podcast.xml';
-  input.autocomplete = 'off';
-  // Enter would submit with the form's first button, Cancel.
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      confirmAdd();
-    }
-  });
+  const input = dialogInput('url', 'feed-url', 'https://example.com/podcast.xml', confirmAdd);
   const help = el('p', '', "Paste the address of any podcast's RSS feed. It plays the newest episode.");
   help.id = 'feed-help';
   box.append(input, help);
@@ -525,23 +589,33 @@ async function confirmAdd() {
     toast(`Added ${picked.length} ${picked.length === 1 ? 'source' : 'sources'}`);
   } else if (addMode === 'feed') {
     await addFeed($('feed-url').value.trim());
+  } else if (addMode === 'search') {
+    await runSearch();
   }
 }
 
-async function addFeed(url) {
-  if (!url) return;
+let adding = false;
+
+/**
+ * Checks that url is a podcast feed with audio and adds it. A feed the directory lists is added
+ * as the directory has it; any other gets its language and flag from the feed itself.
+ */
+async function addFeed(url, name) {
+  if (!url || adding) return;
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   const known = directory.sources.find(s => s.url === url) || { kind: 'rss', url };
-  if (list.some(s => id(s) === id(known))) {
-    $('feed-help').textContent = 'That feed is already in your list.';
+  const existing = list.find(s => id(s) === id(known));
+  if (existing) {
+    $('feed-help').textContent = `${existing.name} is already in your list.`;
     return;
   }
-  $('feed-help').textContent = 'Checking…';
+  adding = true;
+  $('feed-help').textContent = name ? `Checking ${name}…` : 'Checking…';
   $('add-confirm').disabled = true;
   try {
     const ep = await fetchLatest(known);
     const s = known.name ? known : {
-      kind: 'rss', name: ep.feedTitle || new URL(url).hostname, lang: ep.language,
+      kind: 'rss', name: name || ep.feedTitle || new URL(url).hostname, lang: ep.language,
       country: ep.country, url,
     };
     list.push(s);
@@ -552,6 +626,8 @@ async function addFeed(url) {
   } catch (e) {
     $('feed-help').textContent = `That doesn't look like a podcast feed: ${e.message}`;
     $('add-confirm').disabled = false;
+  } finally {
+    adding = false;
   }
 }
 

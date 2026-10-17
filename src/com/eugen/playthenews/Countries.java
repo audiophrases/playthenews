@@ -73,10 +73,23 @@ final class Countries {
             {"orf", "at"}, {"ö1", "at"},
     };
 
+    /** A language's home country, for feeds that give neither a region nor a country domain. */
+    private static final Map<String, String> HOME = new HashMap<>();
+
+    static {
+        HOME.put("de", "de");
+        HOME.put("fr", "fr");
+        HOME.put("it", "it");
+        HOME.put("es", "es");
+        HOME.put("pt", "pt");
+        HOME.put("nl", "nl");
+    }
+
     /** The flag code for a source, or null if unknown. */
     static String of(Source s, Catalog catalog) {
         if (!Source.GOOGLE.equals(s.kind)) {
             String c = Directory.countryOf(s);
+            if (c == null) c = s.country;
             // A saved source the directory no longer lists still has its language.
             return c == null && "ca".equals(s.group) ? CATALAN : c;
         }
@@ -84,6 +97,20 @@ final class Countries {
         if (byName != null) return byName;
         Catalog.Item item = catalog != null ? catalog.find(s.url, s.name) : null;
         return item != null ? byDomain(item.audioUrl()) : null;
+    }
+
+    /**
+     * A flag for a feed the directory doesn't list, from the language it declares ("ca", "fr-CA",
+     * "en-GB"): Catalan, else the language's region, else the feed's country domain, else the
+     * language's home country. Null rather than a guess for, say, plain English on a .com.
+     */
+    static String guess(String language, String url) {
+        String[] lang = language == null ? new String[] {""}
+                : language.toLowerCase(Locale.ROOT).replace('_', '-').split("-");
+        if (lang[0].equals("ca")) return CATALAN;
+        if (lang.length > 1) return FLAGS.containsKey(lang[1]) ? lang[1] : null; // pt-BR isn't Portugal
+        String byDomain = byDomain(url);
+        return byDomain != null ? byDomain : HOME.get(lang[0]);
     }
 
     /** The flag drawable for a code, or 0 if there is none. */

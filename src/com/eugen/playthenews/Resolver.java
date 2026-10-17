@@ -2,10 +2,10 @@ package com.eugen.playthenews;
 
 import android.util.Xml;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,9 +49,23 @@ final class Resolver {
         }
     }
 
+    /** A podcast feed's own title and language, with its newest episode. */
+    static final class Feed {
+        final String title;
+        /** As the feed declares it ("en", "fr-CA"), or null. */
+        final String language;
+        final Episode latest;
+
+        Feed(String title, String language, Episode latest) {
+            this.title = title;
+            this.language = language;
+            this.latest = latest;
+        }
+    }
+
     static Episode resolve(Source s, Catalog catalog) throws IOException {
         switch (s.kind) {
-            case Source.RSS: return parseRss(fetch(s.url));
+            case Source.RSS: return readFeed(s.url).latest;
             case Source.RAI: return resolveRai(s.url);
             case Source.GOOGLE: return resolveGoogle(s, catalog);
             default: throw new IOException("Unknown source type " + s.kind);
@@ -71,16 +85,29 @@ final class Resolver {
 
     // ---- RSS ------------------------------------------------------------------------------
 
-    /** Reads the channel image and the first item's title, enclosure, duration, image and date. */
-    static Episode parseRss(byte[] xml) throws IOException {
+    /**
+     * Downloads a feed only as far as its newest episode (feeds list newest first): some are over
+     * 10 MB, which matters on mobile data when Newest first checks every source.
+     */
+    static Feed readFeed(String url) throws IOException {
+        HttpURLConnection c = open(url);
+        try (InputStream in = c.getInputStream()) {
+            return parseRss(in);
+        } finally {
+            c.disconnect();
+        }
+    }
+
+    /** Reads the channel's title, language and image, then the first item that has audio. */
+    static Feed parseRss(InputStream xml) throws IOException {
         try {
             XmlPullParser p = Xml.newPullParser();
             p.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
-            p.setInput(new ByteArrayInputStream(xml), null);
+            p.setInput(xml, null);
 
             boolean inItem = false;
-            String channelArt = null, title = null, audio = null, itemArt = null, duration = null,
-                    date = null;
+            String feedTitle = null, language = null, channelArt = null, title = null, audio = null,
+                    itemArt = null, duration = null, date = null;
             for (int ev = p.getEventType(); ev != XmlPullParser.END_DOCUMENT; ev = p.next()) {
                 if (ev == XmlPullParser.START_TAG) {
                     String tag = p.getName();
@@ -89,6 +116,10 @@ final class Resolver {
                     } else if ("itunes:image".equals(tag)) {
                         String href = p.getAttributeValue(null, "href");
                         if (inItem) itemArt = href; else if (channelArt == null) channelArt = href;
+                    } else if (!inItem && "title".equals(tag) && feedTitle == null) {
+                        feedTitle = p.nextText().trim();
+                    } else if (!inItem && "language".equals(tag) && language == null) {
+                        language = p.nextText().trim();
                     } else if (!inItem && "url".equals(tag) && channelArt == null) {
                         channelArt = p.nextText().trim();
                     } else if (inItem && "title".equals(tag) && title == null) {
@@ -99,12 +130,8 @@ final class Resolver {
                             || "published".equals(tag) || "updated".equals(tag)
                             || "dc:date".equals(tag))) {
                         date = p.nextText().trim();
-                    } else if (inItem && ("enclosure".equals(tag) || "media:content".equals(tag))
-                            && audio == null) {
-                        String type = p.getAttributeValue(null, "type");
-                        if (type == null || type.startsWith("audio") || type.contains("mpeg")) {
-                            audio = p.getAttributeValue(null, "url");
-                        }
+                    } else if (inItem && audio == null && isAudioEnclosure(p, tag)) {
+                        audio = p.getAttributeValue(null, "link".equals(tag) ? "href" : "url");
                     }
                 } else if (ev == XmlPullParser.END_TAG && inItem
                         && ("item".equals(p.getName()) || "entry".equals(p.getName()))) {
@@ -118,8 +145,8 @@ final class Resolver {
                 }
             }
             if (audio == null) throw new IOException("Feed has no audio episode");
-            return new Episode(title, audio, itemArt != null ? itemArt : channelArt,
-                    parseDuration(duration), parseDate(date));
+            return new Feed(feedTitle, language, new Episode(title, audio,
+                    itemArt != null ? itemArt : channelArt, parseDuration(duration), parseDate(date)));
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
@@ -127,18 +154,41 @@ final class Resolver {
         }
     }
 
+    /** An RSS enclosure, Media RSS content or Atom enclosure link, unless typed as non-audio. */
+    private static boolean isAudioEnclosure(XmlPullParser p, String tag) {
+        if ("link".equals(tag)) {
+            if (!"enclosure".equals(p.getAttributeValue(null, "rel"))) return false;
+        } else if (!"enclosure".equals(tag) && !"media:content".equals(tag)) {
+            return false;
+        }
+        String type = p.getAttributeValue(null, "type");
+        return type == null || type.startsWith("audio") || type.contains("mpeg");
+    }
+
     // ---- RAI ------------------------------------------------------------------------------
 
-    /** RaiPlay Sound program JSON: newest card's audio is a "relinker" that redirects to HLS. */
+    /**
+     * RaiPlay Sound program JSON: the newest card links its audio through "relinker" redirects.
+     * downloadable_audio leads to a plain MP3; audio.url to HLS behind a token that expires
+     * after about 150 seconds, too soon for an episode prefetched while another one plays.
+     */
     private static Episode resolveRai(String programJson) throws IOException {
         try {
-            JSONObject card = new JSONObject(new String(fetch(programJson), "UTF-8"))
-                    .getJSONObject("block").getJSONArray("cards").getJSONObject(0);
+            JSONObject block = new JSONObject(new String(fetch(programJson), "UTF-8"))
+                    .optJSONObject("block");
+            JSONArray cards = block != null ? block.optJSONArray("cards") : null;
+            if (cards == null || cards.length() == 0) {
+                throw new IOException("RAI lists no episodes for this program");
+            }
+            JSONObject card = cards.getJSONObject(0);
             JSONObject audio = card.getJSONObject("audio");
+            JSONObject download = card.optJSONObject("downloadable_audio");
+            String relinker = download != null && download.has("url")
+                    ? download.getString("url") : audio.getString("url");
             String poster = audio.optString("poster", null);
             if (poster != null && poster.startsWith("/")) poster = "https://www.raiplaysound.it" + poster;
             return new Episode(card.optString("title", audio.optString("title")),
-                    finalUrl(audio.getString("url")), poster,
+                    finalUrl(relinker), poster,
                     parseDuration(audio.optString("duration", null)),
                     parseRaiDate(card.optString("create_date", null), card.optString("create_time", null)));
         } catch (IOException e) {
