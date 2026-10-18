@@ -208,8 +208,9 @@ public class PlayNewsActivity extends AppActivity {
 
     private void buildCategoryButtons() {
         categoryRow.removeAllViews();
-        addChip(getString(R.string.my_list_short), v -> { if (service != null) service.playMyList(0); });
         Catalog catalog = service != null ? service.getCatalog() : null;
+        findViewById(R.id.category_scroll).setVisibility(
+                catalog != null && !catalog.categories.isEmpty() ? View.VISIBLE : View.GONE);
         if (catalog == null) return;
         for (final Catalog.Category c : catalog.categories) {
             addChip(Labels.category(c.name), v -> { if (service != null) service.playCategory(c); });
@@ -292,7 +293,7 @@ public class PlayNewsActivity extends AppActivity {
             case PlaybackState.STATE_PAUSED: setStatus(getString(R.string.paused)); break;
             case PlaybackState.STATE_BUFFERING: setStatus(getString(R.string.loading)); break;
             case PlaybackState.STATE_CONNECTING: setStatus(getString(R.string.checking_news)); break;
-            case PlaybackState.STATE_STOPPED: setStatus(getString(R.string.stopped)); break;
+            case PlaybackState.STATE_STOPPED: setStatus(""); break;
             case PlaybackState.STATE_ERROR:
                 CharSequence msg = s.getErrorMessage();
                 setStatus(msg != null ? msg : getString(R.string.playback_error));
@@ -437,7 +438,10 @@ public class PlayNewsActivity extends AppActivity {
         ((Button) findViewById(R.id.collapse_player)).setText(expanded ? getString(R.string.collapse_player) : getString(R.string.expand_player));
     }
 
-    private void setStatus(CharSequence s) { status.setText(s); }
+    private void setStatus(CharSequence s) {
+        status.setText(s);
+        status.setVisibility(s != null && s.length() > 0 ? View.VISIBLE : View.GONE);
+    }
 
     /** A 20×15dp flag; for an unknown country null, or a blank of the same size to keep a column. */
     private Drawable flag(String country, boolean blankIfUnknown) {

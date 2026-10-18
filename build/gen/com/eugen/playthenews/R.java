@@ -58,30 +58,31 @@ public final class R {
     public static final int art=0x7f030001;
     public static final int back=0x7f030002;
     public static final int categories=0x7f030003;
-    public static final int collapse_player=0x7f030004;
-    public static final int duration=0x7f030005;
-    public static final int edit_list=0x7f030006;
-    public static final int elapsed=0x7f030007;
-    public static final int forward=0x7f030008;
-    public static final int hint=0x7f030009;
-    public static final int language=0x7f03000a;
-    public static final int list=0x7f03000b;
-    public static final int next=0x7f03000c;
-    public static final int order_mine=0x7f03000d;
-    public static final int order_newest=0x7f03000e;
-    public static final int play_pause=0x7f03000f;
-    public static final int player_details=0x7f030010;
-    public static final int prev=0x7f030011;
-    public static final int queue=0x7f030012;
-    public static final int queue_label=0x7f030013;
-    public static final int reset=0x7f030014;
-    public static final int rewind=0x7f030015;
-    public static final int seek=0x7f030016;
-    public static final int status=0x7f030017;
-    public static final int stop=0x7f030018;
-    public static final int subtitle=0x7f030019;
-    public static final int theme_toggle=0x7f03001a;
-    public static final int title=0x7f03001b;
+    public static final int category_scroll=0x7f030004;
+    public static final int collapse_player=0x7f030005;
+    public static final int duration=0x7f030006;
+    public static final int edit_list=0x7f030007;
+    public static final int elapsed=0x7f030008;
+    public static final int forward=0x7f030009;
+    public static final int hint=0x7f03000a;
+    public static final int language=0x7f03000b;
+    public static final int list=0x7f03000c;
+    public static final int next=0x7f03000d;
+    public static final int order_mine=0x7f03000e;
+    public static final int order_newest=0x7f03000f;
+    public static final int play_pause=0x7f030010;
+    public static final int player_details=0x7f030011;
+    public static final int prev=0x7f030012;
+    public static final int queue=0x7f030013;
+    public static final int queue_label=0x7f030014;
+    public static final int reset=0x7f030015;
+    public static final int rewind=0x7f030016;
+    public static final int seek=0x7f030017;
+    public static final int status=0x7f030018;
+    public static final int stop=0x7f030019;
+    public static final int subtitle=0x7f03001a;
+    public static final int theme_toggle=0x7f03001b;
+    public static final int title=0x7f03001c;
   }
   public static final class layout {
     public static final int activity_edit=0x7f040000;
@@ -174,7 +175,9 @@ public final class R {
   public static final class style {
     public static final int ControlButton=0x7f080000;
     public static final int OrderChip=0x7f080001;
-    public static final int PlayerDayTheme=0x7f080002;
-    public static final int PlayerTheme=0x7f080003;
+    public static final int PlayerControlButton=0x7f080002;
+    public static final int PlayerDayTheme=0x7f080003;
+    public static final int PlayerTheme=0x7f080004;
+    public static final int TopAction=0x7f080005;
   }
 }
