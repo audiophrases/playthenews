@@ -87,6 +87,9 @@ final class Countries {
 
     /** The flag code for a source, or null if unknown. */
     static String of(Source s, Catalog catalog) {
+        String name = s.name.toLowerCase(Locale.ROOT);
+        if (name.contains("ser tarragona") || name.contains("las noticias de catalunya")
+                || s.url.contains("/ser_tarragona/") || s.url.contains("/las_noticias_de_catalunya/")) return CATALAN;
         if (!Source.GOOGLE.equals(s.kind)) {
             String c = Directory.countryOf(s);
             if (c == null) c = s.country;

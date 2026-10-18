@@ -42,10 +42,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Edits "My list": add sources (Google's, the built-in directory's, or any podcast by search or
+ * Edits "La meva llista": add sources (Google's, the built-in directory's, or any podcast by search or
  * feed address), remove, reorder, and choose whether it plays in that order or newest first.
  */
-public class EditListActivity extends Activity {
+public class EditListActivity extends AppActivity {
 
     private PlayerService service;
     /** The list in the user's own order, as saved. */
@@ -83,10 +83,10 @@ public class EditListActivity extends Activity {
         findViewById(R.id.back).setOnClickListener(v -> finish());
         findViewById(R.id.add).setOnClickListener(v -> chooseGroup());
         findViewById(R.id.reset).setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("Reset your list?")
-                .setMessage("Go back to Google's default: the first ten General sources.")
-                .setPositiveButton("Reset", (d, w) -> resetToDefault())
-                .setNegativeButton(android.R.string.cancel, null)
+                .setTitle("Vols restablir la llista?")
+                .setMessage("Torna a la llista predeterminada de Google: les primeres deu fonts generals.")
+                .setPositiveButton("Restableix", (d, w) -> resetToDefault())
+                .setNegativeButton(R.string.cancel, null)
                 .show());
     }
 
@@ -207,23 +207,23 @@ public class EditListActivity extends Activity {
         if (!newestFirst) return s.label();
         Resolver.Episode e = latest.get(s.id());
         if (e != null && e.publishedAt > 0) return s.label() + "  ·  " + age(e.publishedAt);
-        return checking ? s.label() + "  ·  checking…" : s.label();
+        return checking ? s.label() + "  ·  s’està comprovant…" : s.label();
     }
 
-    /** "just now", "25 min ago", "3 h ago", "2 days ago". */
+    /** "ara mateix", "25 min ago", "3 h ago", "2 days ago". */
     private static String age(long time) {
         long min = (System.currentTimeMillis() - time) / 60000;
-        if (min < 1) return "just now";
-        if (min < 60) return min + " min ago";
-        if (min < 24 * 60) return (min / 60) + " h ago";
+        if (min < 1) return "ara mateix";
+        if (min < 60) return min + " min enrere";
+        if (min < 24 * 60) return (min / 60) + " h enrere";
         long days = min / (24 * 60);
-        return days == 1 ? "1 day ago" : days + " days ago";
+        return days == 1 ? "fa 1 dia" : days + " dies enrere";
     }
 
     private void resetToDefault() {
         Catalog c = catalog();
         if (c == null) {
-            toast("Google news is still loading, try again in a moment");
+            toast("Les notícies de Google encara s’estan carregant. Torna-ho a provar d’aquí a un moment.");
             return;
         }
         entries.clear();
@@ -233,7 +233,7 @@ public class EditListActivity extends Activity {
 
     // ---- adding ---------------------------------------------------------------------------
 
-    private static final String GOOGLE_GROUP = "Google News (all categories)";
+    private static final String GOOGLE_GROUP = "Google News (totes les categories)";
 
     private void chooseGroup() {
         final List<String> labels = new ArrayList<>();
@@ -245,12 +245,12 @@ public class EditListActivity extends Activity {
             labels.add(l[1] + "  (" + Directory.forLanguage(code).size() + ")");
             actions.add(() -> chooseSources(Directory.languageName(code), Directory.forLanguage(code), false));
         }
-        labels.add("Search podcasts…");
+        labels.add("Cerca pòdcasts…");
         actions.add(this::searchPodcasts);
-        labels.add("Podcast feed address…");
+        labels.add("Adreça del canal del pòdcast…");
         actions.add(this::addByAddress);
         new AlertDialog.Builder(this)
-                .setTitle("Add from")
+                .setTitle("Afegeix des de")
                 .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
                 .show();
     }
@@ -258,7 +258,7 @@ public class EditListActivity extends Activity {
     private void chooseFromGoogle() {
         Catalog c = catalog();
         if (c == null) {
-            toast("Google news is still loading, try again in a moment");
+            toast("Les notícies de Google encara s’estan carregant. Torna-ho a provar d’aquí a un moment.");
             return;
         }
         // The same source often appears in several categories; list it once.
@@ -275,19 +275,19 @@ public class EditListActivity extends Activity {
         final List<Source> available = new ArrayList<>();
         for (Source s : candidates) if (!have.contains(s.id())) available.add(s);
         if (available.isEmpty()) {
-            toast("All " + groupTitle + " sources are already in your list");
+            toast("Totes les fonts de " + groupTitle + " ja són a la teva llista");
             return;
         }
         String[] labels = new String[available.size()];
         for (int i = 0; i < labels.length; i++) {
             Source s = available.get(i);
-            labels[i] = showCategory ? s.name + "  ·  " + s.group : s.name;
+            labels[i] = showCategory ? s.name + "  ·  " + Labels.category(s.group) : s.name;
         }
         final boolean[] checked = new boolean[labels.length];
         new AlertDialog.Builder(this)
                 .setTitle(groupTitle)
                 .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which] = isChecked)
-                .setPositiveButton("Add", (d, w) -> {
+                .setPositiveButton("Afegeix", (d, w) -> {
                     int added = 0;
                     for (int i = 0; i < checked.length; i++) {
                         if (checked[i]) { entries.add(available.get(i)); added++; }
@@ -295,10 +295,10 @@ public class EditListActivity extends Activity {
                     if (added > 0) {
                         save();
                         ((ListView) findViewById(R.id.list)).smoothScrollToPosition(entries.size() - 1);
-                        toast("Added " + added + (added == 1 ? " source" : " sources"));
+                        toast("S’ha afegit: " + added + (added == 1 ? " font" : " fonts"));
                     }
                 })
-                .setNegativeButton(android.R.string.cancel, null)
+                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
@@ -307,9 +307,9 @@ public class EditListActivity extends Activity {
     private void addByAddress() {
         final EditText input = dialogInput("https://example.com/podcast.xml",
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, EditorInfo.IME_ACTION_DONE);
-        final TextView status = dialogText("Paste the address of any podcast's RSS feed. "
-                + "It plays the newest episode.");
-        final AlertDialog dialog = showInputDialog("Podcast feed", "Add", input, status, null);
+        final TextView status = dialogText("Enganxa l’adreça del canal RSS del pòdcast. "
+                + "Es reproduirà l’episodi més recent.");
+        final AlertDialog dialog = showInputDialog("Canal del pòdcast", "Afegeix", input, status, null);
         final Button add = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         add.setOnClickListener(v -> {
             String url = input.getText().toString().trim();
@@ -322,21 +322,21 @@ public class EditListActivity extends Activity {
     }
 
     private void searchPodcasts() {
-        final EditText input = dialogInput("Podcast name", InputType.TYPE_CLASS_TEXT,
+        final EditText input = dialogInput("Nom del pòdcast", InputType.TYPE_CLASS_TEXT,
                 EditorInfo.IME_ACTION_SEARCH);
-        final TextView status = dialogText("Searches Apple's podcast directory.");
+        final TextView status = dialogText("Cerca al directori de pòdcasts d’Apple.");
         final List<PodcastSearch.Result> found = new ArrayList<>();
         final ResultAdapter results = new ResultAdapter(found);
         final ListView list = new ListView(this);
         list.setAdapter(results);
-        final AlertDialog dialog = showInputDialog("Search podcasts", "Search", input, status, list);
+        final AlertDialog dialog = showInputDialog("Cerca pòdcasts", "Cerca", input, status, list);
         final boolean[] busy = {false};
 
         final Runnable search = () -> {
             final String term = input.getText().toString().trim();
             if (term.isEmpty() || busy[0]) return;
             final int request = ++searchRequest;
-            status.setText("Searching…");
+            status.setText("S’està cercant…");
             ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
                     .hideSoftInputFromWindow(input.getWindowToken(), 0);
             background.execute(() -> {
@@ -348,10 +348,10 @@ public class EditListActivity extends Activity {
                         found.addAll(r);
                         results.notifyDataSetChanged();
                         list.setSelection(0);
-                        status.setText(r.isEmpty() ? "No podcasts found." : "Tap one to add it.");
+                        status.setText(r.isEmpty() ? "No s’ha trobat cap pòdcast." : "Toca un pòdcast per afegir-lo.");
                     });
                 } catch (IOException e) {
-                    onUi(() -> { if (request == searchRequest) status.setText("Search failed: " + e.getMessage()); });
+                    onUi(() -> { if (request == searchRequest) status.setText("La cerca ha fallat. Comprova la connexió i torna-ho a provar."); });
                 }
             });
         };
@@ -378,12 +378,12 @@ public class EditListActivity extends Activity {
         String id = listed != null ? listed.id() : Source.RSS + "|" + url;
         for (Source s : entries) {
             if (s.id().equals(id)) {
-                status.setText(s.name + " is already in your list.");
+                status.setText(s.name + " ja és a la teva llista.");
                 onFailure.run();
                 return;
             }
         }
-        status.setText(name != null ? "Checking " + name + "…" : "Checking…");
+        status.setText(name != null ? "S’està comprovant: " + name + "…" : "S’està comprovant…");
         background.execute(() -> {
             try {
                 final Source added;
@@ -402,11 +402,11 @@ public class EditListActivity extends Activity {
                     entries.add(added);
                     save();
                     ((ListView) findViewById(R.id.list)).smoothScrollToPosition(entries.size() - 1);
-                    toast("Added " + added.name);
+                    toast("S’ha afegit: " + added.name);
                 });
             } catch (Exception e) {
                 onUi(() -> {
-                    status.setText("That doesn't look like a podcast feed: " + e.getMessage());
+                    status.setText("No s’ha pogut llegir el canal. Comprova l’adreça i la connexió.");
                     onFailure.run();
                 });
             }
@@ -430,7 +430,7 @@ public class EditListActivity extends Activity {
     private TextView dialogText(String text) {
         TextView t = new TextView(this);
         t.setText(text);
-        t.setTextColor(0xFFB0B0B8);
+        t.setTextColor(color(R.color.secondary));
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         t.setPadding(dp(4), dp(8), dp(4), dp(4));
         return t;
@@ -454,7 +454,7 @@ public class EditListActivity extends Activity {
                 .setTitle(title)
                 .setView(box)
                 .setPositiveButton(action, null)
-                .setNegativeButton(android.R.string.cancel, null)
+                .setNegativeButton(R.string.cancel, null)
                 .create();
         dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
         dialog.show();
@@ -482,12 +482,12 @@ public class EditListActivity extends Activity {
                 row.setOrientation(LinearLayout.VERTICAL);
                 row.setPadding(dp(4), dp(10), dp(4), dp(10));
                 TextView name = new TextView(EditListActivity.this);
-                name.setTextColor(0xFFE0E0E6);
+                name.setTextColor(color(R.color.primary));
                 name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
                 name.setMaxLines(2);
                 name.setEllipsize(TextUtils.TruncateAt.END);
                 TextView detail = new TextView(EditListActivity.this);
-                detail.setTextColor(0xFF8A8A92);
+                detail.setTextColor(color(R.color.secondary));
                 detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
                 detail.setMaxLines(1);
                 detail.setEllipsize(TextUtils.TruncateAt.END);
@@ -498,7 +498,7 @@ public class EditListActivity extends Activity {
             List<String> parts = new ArrayList<>();
             if (!r.author.isEmpty()) parts.add(r.author);
             if (!r.genre.isEmpty()) parts.add(r.genre);
-            if (r.updatedAt > 0) parts.add("updated " + age(r.updatedAt));
+            if (r.updatedAt > 0) parts.add("actualitzat " + age(r.updatedAt));
             ((TextView) row.getChildAt(0)).setText(r.name);
             ((TextView) row.getChildAt(1)).setText(TextUtils.join("  ·  ", parts));
             return row;
@@ -557,12 +557,12 @@ public class EditListActivity extends Activity {
             LinearLayout text = new LinearLayout(EditListActivity.this);
             text.setOrientation(LinearLayout.VERTICAL);
             title = new TextView(EditListActivity.this);
-            title.setTextColor(0xFFE0E0E6);
+            title.setTextColor(color(R.color.primary));
             title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
             title.setMaxLines(2);
             title.setEllipsize(TextUtils.TruncateAt.END);
             subtitle = new TextView(EditListActivity.this);
-            subtitle.setTextColor(0xFF8A8A92);
+            subtitle.setTextColor(color(R.color.secondary));
             subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             text.addView(title);
             text.addView(subtitle);

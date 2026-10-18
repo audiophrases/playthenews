@@ -24,11 +24,13 @@ final class Lineup {
     private static final String KEY_NEWEST_FIRST = "newest_first";
 
     static boolean exists(Context c) {
+        ensurePreloaded(c);
         return prefs(c).contains(KEY);
     }
 
     static boolean newestFirst(Context c) {
-        return prefs(c).getBoolean(KEY_NEWEST_FIRST, false);
+        ensurePreloaded(c);
+        return prefs(c).getBoolean(KEY_NEWEST_FIRST, true);
     }
 
     static void setNewestFirst(Context c, boolean on) {
@@ -51,6 +53,7 @@ final class Lineup {
     }
 
     static List<Source> load(Context c) {
+        ensurePreloaded(c);
         List<Source> out = new ArrayList<>();
         String json = prefs(c).getString(KEY, null);
         if (json == null) return out;
@@ -71,6 +74,18 @@ final class Lineup {
             throw new IllegalStateException(e);
         }
         prefs(c).edit().putString(KEY, a.toString()).apply();
+    }
+
+    private static void ensurePreloaded(Context c) {
+        if (prefs(c).contains(KEY)) return;
+        try (java.io.InputStream in = c.getResources().openRawResource(R.raw.preloaded_sources);
+             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096]; int count;
+            while ((count = in.read(buffer)) != -1) out.write(buffer, 0, count);
+            String json = out.toString("UTF-8");
+            new JSONArray(json); // Validate before saving; preserve an intentionally empty saved list.
+            prefs(c).edit().putString(KEY, json).putBoolean(KEY_NEWEST_FIRST, true).apply();
+        } catch (Exception e) { Log.e(TAG, "Could not preload sources", e); }
     }
 
     private static SharedPreferences prefs(Context c) {

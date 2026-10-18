@@ -1,0 +1,315 @@
+[
+  {
+    "k": "google",
+    "n": "DW Newsbrief",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "franceinfo - le flash",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "Al Jazeera",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "BBC News Summary",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "Reuters 5-minute News Briefing (Global)",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "NPR World",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "Tagesschau in 100 Sekunden",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "NPR News Now",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "ABC News Update",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "CBC News: World Report",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "rss",
+    "n": "3CatInfo – El radar",
+    "g": "ca",
+    "u": "https://dinamics.3cat.cat/public/podcast/catradio/xml/5/6/podprograma2165.xml"
+  },
+  {
+    "k": "rss",
+    "n": "RAC1 – El davantal",
+    "g": "ca",
+    "u": "https://api.audioteca.rac1.cat/rss/el-mon/el-davantal"
+  },
+  {
+    "k": "rss",
+    "n": "Catalunya Ràdio – Catalunya migdia",
+    "g": "ca",
+    "u": "https://dinamics.3cat.cat/public/podcast/catradio/xml/9/3/podprograma1739.xml"
+  },
+  {
+    "k": "rss",
+    "n": "Catalunya Ràdio – Catalunya nit",
+    "g": "ca",
+    "u": "https://dinamics.3cat.cat/public/podcast/catradio/xml/2/8/podprograma1682.xml"
+  },
+  {
+    "k": "rss",
+    "n": "À Punt – Les notícies del matí",
+    "g": "ca",
+    "u": "https://www.apuntmedia.es/podcast-mp3/les-noticies-del-mati-11200.xml"
+  },
+  {
+    "k": "rss",
+    "n": "À Punt – Les notícies del migdia",
+    "g": "ca",
+    "u": "https://www.apuntmedia.es/podcast-mp3/les-noticies-del-migdia-11300.xml"
+  },
+  {
+    "k": "rss",
+    "n": "La competència - Programa sencer",
+    "g": "ca",
+    "u": "https://api.audioteca.rac1.cat/rss/la-competencia",
+    "c": "es-ct"
+  },
+  {
+    "k": "rss",
+    "n": "RNE – Boletines",
+    "g": "es",
+    "u": "https://secure-embed.rtve.es/rneapple/boletines.rss"
+  },
+  {
+    "k": "rss",
+    "n": "RNE – 24 horas",
+    "g": "es",
+    "u": "https://api.rtve.es/api/adapter/programas/1871/audios.rss"
+  },
+  {
+    "k": "rss",
+    "n": "Onda Cero – Las noticias",
+    "g": "es",
+    "u": "https://www.ondacero.es/rss/podcast/triton/mount/ATRESMEDIA_LAS_NOTICIAS_EN_ONDA_CERO_AOD_P/origin/fastly"
+  },
+  {
+    "k": "rss",
+    "n": "Cadena SER – Las noticias de Catalunya",
+    "g": "es",
+    "u": "https://fapi-top.prisasd.com/podcast/playser/las_noticias_de_catalunya/itunestfp/podcast.xml",
+    "c": "es-ct"
+  },
+  {
+    "k": "rss",
+    "n": "RFI Español – Noticieros",
+    "g": "es",
+    "u": "https://apis.rfi.fr/products/get_product/fov-rfi-es-get-journaux-podcast-v2?token_application=975d23b8-7a07-11e8-9f62-005056a90194"
+  },
+  {
+    "k": "rss",
+    "n": "Heraldo de México – Noticias",
+    "g": "es",
+    "u": "https://feeds.acast.com/public/shows/6168800db567570014734b8c"
+  },
+  {
+    "k": "rai",
+    "n": "Rai GR1",
+    "g": "it",
+    "u": "https://www.raiplaysound.it/programmi/gr1.json"
+  },
+  {
+    "k": "rai",
+    "n": "Rai GR2",
+    "g": "it",
+    "u": "https://www.raiplaysound.it/programmi/gr2.json"
+  },
+  {
+    "k": "rai",
+    "n": "Rai GR3",
+    "g": "it",
+    "u": "https://www.raiplaysound.it/programmi/gr3.json"
+  },
+  {
+    "k": "rss",
+    "n": "RSI – Radiogiornale",
+    "g": "it",
+    "u": "https://www.rsi.ch/rete-uno/programmi/informazione/radiogiornale/?f=podcast-xml"
+  },
+  {
+    "k": "rss",
+    "n": "Il Sole 24 Ore – Effetto giorno",
+    "g": "it",
+    "u": "https://backr24.ilsole24ore.com/podcast/effettogiorno.xml"
+  },
+  {
+    "k": "rss",
+    "n": "Radio Radicale – Notiziario del mattino",
+    "g": "it",
+    "u": "https://www.radioradicale.it/rubriche/64/notiziario-del-mattino/podcast"
+  },
+  {
+    "k": "rss",
+    "n": "France Inter – Journal de 8h",
+    "g": "fr",
+    "u": "https://radiofrance-podcast.net/podcast09/rss_12495.xml"
+  },
+  {
+    "k": "rss",
+    "n": "France Inter – Journal de 19h",
+    "g": "fr",
+    "u": "https://radiofrance-podcast.net/podcast09/rss_11736.xml"
+  },
+  {
+    "k": "rss",
+    "n": "France Culture – Journal de 7h",
+    "g": "fr",
+    "u": "https://radiofrance-podcast.net/podcast09/rss_10055.xml"
+  },
+  {
+    "k": "rss",
+    "n": "France Culture – Journal de 12h30",
+    "g": "fr",
+    "u": "https://radiofrance-podcast.net/podcast09/rss_10059.xml"
+  },
+  {
+    "k": "rss",
+    "n": "RFI – Journal monde",
+    "g": "fr",
+    "u": "https://apis.rfi.fr/products/get_product/fov-rfi-fr-get-journaux-podcast-v2-monde?token_application=975d23b8-7a07-11e8-9f62-005056a90194"
+  },
+  {
+    "k": "rss",
+    "n": "RFI – Journal en français facile",
+    "g": "fr",
+    "u": "https://apis.fle.rfi.fr/products/get_product/fle_getpodcast_by_nid_author_rfi?token_application=applepodcast_fle&program.entrepriseId=WBMZ39-FLE-FR-20220627"
+  },
+  {
+    "k": "rss",
+    "n": "Europe 1 – Le journal",
+    "g": "fr",
+    "u": "https://feeds.audiomeans.fr/feed/44f6a116-20a6-44c4-98c4-b3e1bdd46dce.xml"
+  },
+  {
+    "k": "rss",
+    "n": "RTL – Le journal",
+    "g": "fr",
+    "u": "https://feeds.audiomeans.fr/feed/81fdd41c-51e9-4839-b867-7ad5bfe61dea.xml"
+  },
+  {
+    "k": "rss",
+    "n": "RTS – Le Journal horaire",
+    "g": "fr",
+    "u": "https://www.rts.ch/la-1ere/programmes/le-journal-horaire/podcast/?flux=rss"
+  },
+  {
+    "k": "rss",
+    "n": "Radio-Canada – Le Radiojournal",
+    "g": "fr",
+    "u": "https://feeds.feedburner.com/LeRadiojournal"
+  },
+  {
+    "k": "rss",
+    "n": "Le Monde – L'Heure du Monde",
+    "g": "fr",
+    "u": "https://feeds.acast.com/public/shows/68db9d2509b1c365e44318ca"
+  },
+  {
+    "k": "google",
+    "n": "The World in Brief from The Economist",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "New York Times - The Daily",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "WSJ Tech News Briefing",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "ABC World News Tonight",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "WSJ Minute Briefing",
+    "g": "General",
+    "u": "0"
+  },
+  {
+    "k": "google",
+    "n": "Global's Newsroom",
+    "g": "World",
+    "u": "9"
+  },
+  {
+    "k": "rss",
+    "n": "Darrers podcast - Altafulla Ràdio",
+    "g": "ca",
+    "u": "https://rssraw.enacastapis.com/podcast_rss/altafullaradio/latests.rss",
+    "c": "es-ct"
+  },
+  {
+    "k": "rss",
+    "n": "SER Tarragona",
+    "g": "es",
+    "u": "https://fapi-top.prisasd.com/podcast/playser/ser_tarragona/itunestfp/podcast.xml",
+    "c": "es-ct"
+  },
+  {
+    "k": "rss",
+    "n": "Tarragona Daily | Ràdio Ciutat de Tarragona",
+    "g": "ca",
+    "u": "https://radiociutat.com/category/podcast/estructura/informatius/tgninfo/tarragona-daily/feed/",
+    "c": "es-ct"
+  },
+  {
+    "k": "rss",
+    "n": "El matí de Catalunya Ràdio",
+    "g": "ca",
+    "u": "https://dinamics.3cat.cat/public/podcast/catradio/xml/6/6/podprograma1566.xml",
+    "c": "es-ct"
+  },
+  {
+    "k": "rss",
+    "n": "Infopòdcast",
+    "g": "ca",
+    "u": "https://www.ona-latorre.cat/podcasts/infopodcast/rss/",
+    "c": "es-ct"
+  }
+]

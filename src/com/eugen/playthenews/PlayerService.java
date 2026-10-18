@@ -61,7 +61,7 @@ public class PlayerService extends Service {
     static final String ACTION_PREV = "com.eugen.playthenews.PREV";
     static final String ACTION_STOP = "com.eugen.playthenews.STOP";
 
-    static final String MY_LIST = "My list";
+    static final String MY_LIST = "La meva llista";
 
     /** Flag code ({@link Countries}) in queue item extras and in the metadata. */
     static final String EXTRA_COUNTRY = "com.eugen.playthenews.COUNTRY";
@@ -158,7 +158,7 @@ public class PlayerService extends Service {
         session.setActive(true);
 
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Playback",
+            NotificationChannel ch = new NotificationChannel(CHANNEL, "Reproducció",
                     NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -231,7 +231,7 @@ public class PlayerService extends Service {
         }
         final List<Source> list = Lineup.load(this);
         if (list.isEmpty()) {
-            toast("Your list is empty. Tap Edit to add sources.");
+            toast("La llista és buida. Toca «Edita la llista» per afegir-hi fonts.");
             return;
         }
         if (!Lineup.newestFirst(this)) {
@@ -246,6 +246,10 @@ public class PlayerService extends Service {
         art = null;
         publishMetadata();
         setState(PlaybackState.STATE_CONNECTING);
+        queue = new ArrayList<>(list);
+        queueTitle = MY_LIST;
+        publishQueue(); // Keep sources visible while their latest bulletins are checked.
+        goForeground(); // Keep the pending request alive during a theme change or navigation.
         fetchLatest(list, latest -> {
             if (token == playToken) playQueue(Lineup.byNewest(list, latest), MY_LIST, start);
         });
@@ -296,7 +300,7 @@ public class PlayerService extends Service {
         if (c == null) return;
         List<Source> list = new ArrayList<>();
         for (Catalog.Item i : c.inCategory(category.id)) list.add(i.toSource());
-        playQueue(list, category.name, 0);
+        playQueue(list, Labels.category(category.name), 0);
     }
 
     /**
@@ -411,13 +415,13 @@ public class PlayerService extends Service {
         episodeCache.remove(src.id());
         releasePlayer();
         if (++consecutiveFailures >= Math.max(3, queue.size())) {
-            errorMessage = "Nothing could be played. Check the network connection.";
+            errorMessage = "No s’ha pogut reproduir cap font. Comprova la connexió a Internet.";
             index = -1;
             setState(PlaybackState.STATE_ERROR);
             stopForegroundCompat(false);
             return;
         }
-        toast("Couldn't play " + src.name + ", skipping");
+        toast("No s’ha pogut reproduir: " + src.name + ". Es passa a la següent font");
         handler.postDelayed(() -> skip(1), 300);
     }
 

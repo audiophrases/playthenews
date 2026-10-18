@@ -9,7 +9,9 @@ $P       = $PSScriptRoot
 $B       = "$P\build"
 $KS      = "$P\playthenews.keystore"
 
-Remove-Item -Recurse -Force $B -ErrorAction SilentlyContinue
+$buildTarget = [System.IO.Path]::GetFullPath($B)
+if ($buildTarget -ne [System.IO.Path]::GetFullPath((Join-Path $P 'build'))) { throw "Unexpected build directory" }
+Remove-Item -LiteralPath $buildTarget -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path "$B\classes" | Out-Null
 
 # 1. one-time signing key

@@ -40,7 +40,7 @@ final class Source {
 
     /** Second line shown under the name in lists. */
     String label() {
-        return GOOGLE.equals(kind) ? "Google · " + group : Directory.languageName(group);
+        return GOOGLE.equals(kind) ? "Google · " + Labels.category(group) : Directory.languageName(group);
     }
 
     JSONObject toJson() throws JSONException {

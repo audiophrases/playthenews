@@ -15,8 +15,8 @@ import java.util.Map;
 final class Directory {
 
     static final String[][] LANGUAGES = {
-            {"de", "Deutsch"}, {"fr", "Français"}, {"es", "Español"}, {"ca", "Català"},
-            {"it", "Italiano"}, {"en", "English"}, {"pt", "Português"},
+            {"de", "Alemany"}, {"fr", "Francès"}, {"es", "Castellà"}, {"ca", "Català"},
+            {"it", "Italià"}, {"en", "Anglès"}, {"pt", "Portuguès"},
     };
 
     /** Flag code by source id. Filled while SOURCES is built, so it must be declared first. */
@@ -51,7 +51,7 @@ final class Directory {
             rss("es", "es", "RNE – Boletines", "https://secure-embed.rtve.es/rneapple/boletines.rss"),
             rss("es", "es", "RNE – 24 horas", "https://api.rtve.es/api/adapter/programas/1871/audios.rss"),
             rss("es", "es", "Onda Cero – Las noticias", "https://www.ondacero.es/rss/podcast/triton/mount/ATRESMEDIA_LAS_NOTICIAS_EN_ONDA_CERO_AOD_P/origin/fastly"),
-            rss("es", "es", "Cadena SER – Las noticias de Catalunya", "https://fapi-top.prisasd.com/podcast/playser/las_noticias_de_catalunya/itunestfp/podcast.xml"),
+            rss("es", "es-ct", "Cadena SER – Las noticias de Catalunya", "https://fapi-top.prisasd.com/podcast/playser/las_noticias_de_catalunya/itunestfp/podcast.xml"),
             rss("es", "fr", "RFI Español – Noticieros", "https://apis.rfi.fr/products/get_product/fov-rfi-es-get-journaux-podcast-v2?token_application=975d23b8-7a07-11e8-9f62-005056a90194"),
             rss("es", "mx", "Heraldo de México – Noticias", "https://feeds.acast.com/public/shows/6168800db567570014734b8c"),
 
@@ -94,7 +94,7 @@ final class Directory {
         for (String[] l : LANGUAGES) if (l[0].equals(code)) return l[1];
         // Feeds added by address or search: the language's own name ("Nederlands") if Android knows it.
         Locale locale = Locale.forLanguageTag(code == null ? "" : code);
-        String name = locale.getDisplayLanguage(locale);
+        String name = locale.getDisplayLanguage(Locale.forLanguageTag("ca"));
         if (name.isEmpty() || name.equalsIgnoreCase(code)) return "Podcast";
         return name.substring(0, 1).toUpperCase(locale) + name.substring(1);
     }

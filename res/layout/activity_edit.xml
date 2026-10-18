@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF121214"
+    android:background="@color/background"
     android:fitsSystemWindows="true">
 
 <LinearLayout
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginLeft="4dp"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/primary"
             android:textSize="20sp"
             android:textStyle="bold"
             android:text="@string/my_list" />
@@ -39,7 +39,7 @@
             android:layout_height="wrap_content"
             android:background="?android:attr/selectableItemBackground"
             android:padding="10dp"
-            android:textColor="#FF8AB4F8"
+            android:textColor="@color/accent"
             android:textSize="14sp"
             android:text="@string/reset" />
     </LinearLayout>
@@ -70,7 +70,7 @@
         android:paddingLeft="8dp"
         android:paddingRight="8dp"
         android:paddingBottom="8dp"
-        android:textColor="#FFB0B0B8"
+        android:textColor="@color/secondary"
         android:textSize="13sp"
         android:text="@string/edit_hint" />
 
@@ -79,7 +79,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="#FF2A2A2E"
+        android:divider="@color/surface"
         android:dividerHeight="1dp" />
 
     <Button

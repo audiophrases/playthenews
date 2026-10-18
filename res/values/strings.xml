@@ -1,23 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Play the News</string>
-    <string name="previous">Previous</string>
-    <string name="rewind">Back 15 seconds</string>
-    <string name="play_pause">Play or pause</string>
-    <string name="forward">Forward 30 seconds</string>
-    <string name="next">Next</string>
-    <string name="stop">Stop</string>
-    <string name="up_next">Queue</string>
-    <string name="edit_list">Edit list</string>
-    <string name="my_list">My news list</string>
-    <string name="edit_hint">Plays top to bottom. Each source plays its latest bulletin.</string>
-    <string name="edit_hint_newest">The most recently updated sources play first. Your own order is kept for when you switch back.</string>
-    <string name="order_mine">My order</string>
-    <string name="order_newest">Newest first</string>
-    <string name="add_sources">Add sources</string>
-    <string name="reset">Reset</string>
-    <string name="move_up">Move up</string>
-    <string name="move_down">Move down</string>
-    <string name="remove">Remove</string>
-    <string name="back">Back</string>
+    <string name="app_name">Escolta les notícies</string>
+    <string name="previous">Anterior</string>
+    <string name="rewind">Retrocedeix 15 segons</string>
+    <string name="play_pause">Reprodueix o posa en pausa</string>
+    <string name="forward">Avança 30 segons</string>
+    <string name="next">Següent</string>
+    <string name="stop">Atura</string>
+    <string name="up_next">Llista de reproducció</string>
+    <string name="edit_list">Edita la llista</string>
+    <string name="my_list">La meva llista</string>
+    <string name="edit_hint">Es reprodueix de dalt a baix. Cada font reprodueix el seu últim butlletí.</string>
+    <string name="edit_hint_newest">Primer es reprodueixen les fonts actualitzades més recentment. Es conserva el teu ordre per quan hi tornis.</string>
+    <string name="order_mine">El meu ordre</string>
+    <string name="order_newest">Més recents primer</string>
+    <string name="add_sources">Afegeix fonts</string>
+    <string name="reset">Restableix</string>
+    <string name="move_up">Mou amunt</string>
+    <string name="move_down">Mou avall</string>
+    <string name="remove">Elimina</string>
+    <string name="back">Enrere</string>
+
+    <string name="cancel">Cancel·la</string>
 </resources>
