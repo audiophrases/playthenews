@@ -61,7 +61,7 @@ public class PlayerService extends Service {
     static final String ACTION_PREV = "com.eugen.playthenews.PREV";
     static final String ACTION_STOP = "com.eugen.playthenews.STOP";
 
-    static final String MY_LIST = "La meva llista";
+    static final String MY_LIST = "My list";
 
     /** Flag code ({@link Countries}) in queue item extras and in the metadata. */
     static final String EXTRA_COUNTRY = "com.eugen.playthenews.COUNTRY";
@@ -158,7 +158,7 @@ public class PlayerService extends Service {
         session.setActive(true);
 
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(CHANNEL, "Reproducció",
+            NotificationChannel ch = new NotificationChannel(CHANNEL, AppLanguage.text(R.string.playback_channel),
                     NotificationManager.IMPORTANCE_LOW);
             ch.setShowBadge(false);
             getSystemService(NotificationManager.class).createNotificationChannel(ch);
@@ -206,6 +206,17 @@ public class PlayerService extends Service {
         return session.getSessionToken();
     }
 
+    void refreshLanguage() {
+        publishQueue();
+        publishMetadata();
+        updateNotification();
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel ch = new NotificationChannel(CHANNEL, AppLanguage.text(R.string.playback_channel), NotificationManager.IMPORTANCE_LOW);
+            ch.setShowBadge(false);
+            getSystemService(NotificationManager.class).createNotificationChannel(ch);
+        }
+    }
+
     Catalog getCatalog() {
         return catalog;
     }
@@ -231,7 +242,7 @@ public class PlayerService extends Service {
         }
         final List<Source> list = Lineup.load(this);
         if (list.isEmpty()) {
-            toast("La llista és buida. Toca «Edita la llista» per afegir-hi fonts.");
+            toast(AppLanguage.text(R.string.empty_list));
             return;
         }
         if (!Lineup.newestFirst(this)) {
@@ -300,7 +311,7 @@ public class PlayerService extends Service {
         if (c == null) return;
         List<Source> list = new ArrayList<>();
         for (Catalog.Item i : c.inCategory(category.id)) list.add(i.toSource());
-        playQueue(list, Labels.category(category.name), 0);
+        playQueue(list, category.name, 0);
     }
 
     /**
@@ -415,13 +426,13 @@ public class PlayerService extends Service {
         episodeCache.remove(src.id());
         releasePlayer();
         if (++consecutiveFailures >= Math.max(3, queue.size())) {
-            errorMessage = "No s’ha pogut reproduir cap font. Comprova la connexió a Internet.";
+            errorMessage = AppLanguage.text(R.string.nothing_played);
             index = -1;
             setState(PlaybackState.STATE_ERROR);
             stopForegroundCompat(false);
             return;
         }
-        toast("No s’ha pogut reproduir: " + src.name + ". Es passa a la següent font");
+        toast(AppLanguage.text(R.string.cannot_play_prefix) + src.name + AppLanguage.text(R.string.skip_suffix));
         handler.postDelayed(() -> skip(1), 300);
     }
 
@@ -541,7 +552,7 @@ public class PlayerService extends Service {
         MediaMetadata.Builder b = new MediaMetadata.Builder()
                 .putString(MediaMetadata.METADATA_KEY_TITLE, src.name)
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, episode != null ? episode.title : src.label())
-                .putString(MediaMetadata.METADATA_KEY_ALBUM, queueTitle)
+                .putString(MediaMetadata.METADATA_KEY_ALBUM, Labels.category(queueTitle))
                 .putString(EXTRA_COUNTRY, Countries.of(src, catalog))
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, duration);
         if (episode != null && episode.artUrl != null) {
@@ -562,7 +573,7 @@ public class PlayerService extends Service {
                     .setExtras(extras).build(), i));
         }
         session.setQueue(items);
-        session.setQueueTitle(queueTitle);
+        session.setQueueTitle(Labels.category(queueTitle));
     }
 
     // ---- resolving ------------------------------------------------------------------------
@@ -808,20 +819,20 @@ public class PlayerService extends Service {
         Source src = index >= 0 && index < queue.size() ? queue.get(index) : null;
         boolean playing = state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_BUFFERING;
         b.setSmallIcon(R.drawable.ic_play)
-                .setContentTitle(src != null ? src.name : getString(R.string.app_name))
-                .setContentText(episode != null ? episode.title : queueTitle)
-                .setSubText(queueTitle + (index >= 0 ? " · " + (index + 1) + "/" + queue.size() : ""))
+                .setContentTitle(src != null ? src.name : AppLanguage.text(R.string.app_name))
+                .setContentText(episode != null ? episode.title : Labels.category(queueTitle))
+                .setSubText(Labels.category(queueTitle) + (index >= 0 ? " · " + (index + 1) + "/" + queue.size() : ""))
                 .setLargeIcon(art)
                 .setContentIntent(session.getController().getSessionActivity())
                 .setDeleteIntent(serviceIntent(ACTION_STOP, 4))
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setOngoing(playing)
                 .setShowWhen(false)
-                .addAction(new Notification.Action.Builder(R.drawable.ic_prev, getString(R.string.previous),
+                .addAction(new Notification.Action.Builder(R.drawable.ic_prev, AppLanguage.text(R.string.previous),
                         serviceIntent(ACTION_PREV, 1)).build())
                 .addAction(new Notification.Action.Builder(playing ? R.drawable.ic_pause : R.drawable.ic_play,
-                        getString(R.string.play_pause), serviceIntent(ACTION_TOGGLE, 2)).build())
-                .addAction(new Notification.Action.Builder(R.drawable.ic_next, getString(R.string.next),
+                        AppLanguage.text(R.string.play_pause), serviceIntent(ACTION_TOGGLE, 2)).build())
+                .addAction(new Notification.Action.Builder(R.drawable.ic_next, AppLanguage.text(R.string.next),
                         serviceIntent(ACTION_NEXT, 3)).build())
                 .setStyle(new Notification.MediaStyle()
                         .setMediaSession(session.getSessionToken())

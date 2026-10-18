@@ -7,12 +7,12 @@ import android.os.Bundle;
 import android.view.View;
 import java.util.Locale;
 
-/** Shared Catalan UI, enlarged typography and persistent day/night preference. */
+/** Shared bilingual UI, enlarged typography and persistent day/night preference. */
 public abstract class AppActivity extends Activity {
     static boolean day(Context c) { return c.getSharedPreferences("appearance", 0).getBoolean("day", false); }
     @Override protected void attachBaseContext(Context base) {
         Configuration config = new Configuration(base.getResources().getConfiguration());
-        config.setLocale(Locale.forLanguageTag("ca"));
+        config.setLocale(Locale.forLanguageTag(AppLanguage.code(base)));
         config.fontScale *= 1.25f;
         config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
                 | (day(base) ? Configuration.UI_MODE_NIGHT_NO : Configuration.UI_MODE_NIGHT_YES);

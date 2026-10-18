@@ -42,7 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Edits "La meva llista": add sources (Google's, the built-in directory's, or any podcast by search or
+ * Edits getString(R.string.my_list_short): add sources (Google's, the built-in directory's, or any podcast by search or
  * feed address), remove, reorder, and choose whether it plays in that order or newest first.
  */
 public class EditListActivity extends AppActivity {
@@ -83,9 +83,9 @@ public class EditListActivity extends AppActivity {
         findViewById(R.id.back).setOnClickListener(v -> finish());
         findViewById(R.id.add).setOnClickListener(v -> chooseGroup());
         findViewById(R.id.reset).setOnClickListener(v -> new AlertDialog.Builder(this)
-                .setTitle("Vols restablir la llista?")
-                .setMessage("Torna a la llista predeterminada de Google: les primeres deu fonts generals.")
-                .setPositiveButton("Restableix", (d, w) -> resetToDefault())
+                .setTitle(getString(R.string.reset_title))
+                .setMessage(getString(R.string.reset_message))
+                .setPositiveButton(getString(R.string.reset), (d, w) -> resetToDefault())
                 .setNegativeButton(R.string.cancel, null)
                 .show());
     }
@@ -207,23 +207,23 @@ public class EditListActivity extends AppActivity {
         if (!newestFirst) return s.label();
         Resolver.Episode e = latest.get(s.id());
         if (e != null && e.publishedAt > 0) return s.label() + "  ·  " + age(e.publishedAt);
-        return checking ? s.label() + "  ·  s’està comprovant…" : s.label();
+        return checking ? s.label() + getString(R.string.checking_suffix) : s.label();
     }
 
-    /** "ara mateix", "25 min ago", "3 h ago", "2 days ago". */
-    private static String age(long time) {
+    /** getString(R.string.just_now), "25 min ago", "3 h ago", "2 days ago". */
+    private String age(long time) {
         long min = (System.currentTimeMillis() - time) / 60000;
-        if (min < 1) return "ara mateix";
-        if (min < 60) return min + " min enrere";
-        if (min < 24 * 60) return (min / 60) + " h enrere";
+        if (min < 1) return getString(R.string.just_now);
+        if (min < 60) return min + getString(R.string.minutes_ago);
+        if (min < 24 * 60) return (min / 60) + getString(R.string.hours_ago);
         long days = min / (24 * 60);
-        return days == 1 ? "fa 1 dia" : days + " dies enrere";
+        return days == 1 ? getString(R.string.one_day_ago) : days + getString(R.string.days_ago);
     }
 
     private void resetToDefault() {
         Catalog c = catalog();
         if (c == null) {
-            toast("Les notícies de Google encara s’estan carregant. Torna-ho a provar d’aquí a un moment.");
+            toast(getString(R.string.google_loading));
             return;
         }
         entries.clear();
@@ -233,24 +233,24 @@ public class EditListActivity extends AppActivity {
 
     // ---- adding ---------------------------------------------------------------------------
 
-    private static final String GOOGLE_GROUP = "Google News (totes les categories)";
+
 
     private void chooseGroup() {
         final List<String> labels = new ArrayList<>();
         final List<Runnable> actions = new ArrayList<>();
-        labels.add(GOOGLE_GROUP);
+        labels.add(getString(R.string.google_group));
         actions.add(this::chooseFromGoogle);
         for (String[] l : Directory.LANGUAGES) {
             final String code = l[0];
-            labels.add(l[1] + "  (" + Directory.forLanguage(code).size() + ")");
+            labels.add(Directory.languageName(code) + "  (" + Directory.forLanguage(code).size() + ")");
             actions.add(() -> chooseSources(Directory.languageName(code), Directory.forLanguage(code), false));
         }
-        labels.add("Cerca pòdcasts…");
+        labels.add(getString(R.string.search_podcasts_more));
         actions.add(this::searchPodcasts);
-        labels.add("Adreça del canal del pòdcast…");
+        labels.add(getString(R.string.feed_address));
         actions.add(this::addByAddress);
         new AlertDialog.Builder(this)
-                .setTitle("Afegeix des de")
+                .setTitle(getString(R.string.add_from))
                 .setItems(labels.toArray(new String[0]), (d, which) -> actions.get(which).run())
                 .show();
     }
@@ -258,7 +258,7 @@ public class EditListActivity extends AppActivity {
     private void chooseFromGoogle() {
         Catalog c = catalog();
         if (c == null) {
-            toast("Les notícies de Google encara s’estan carregant. Torna-ho a provar d’aquí a un moment.");
+            toast(getString(R.string.google_loading));
             return;
         }
         // The same source often appears in several categories; list it once.
@@ -275,7 +275,7 @@ public class EditListActivity extends AppActivity {
         final List<Source> available = new ArrayList<>();
         for (Source s : candidates) if (!have.contains(s.id())) available.add(s);
         if (available.isEmpty()) {
-            toast("Totes les fonts de " + groupTitle + " ja són a la teva llista");
+            toast(getString(R.string.all_sources_prefix) + groupTitle + getString(R.string.already_list_suffix));
             return;
         }
         String[] labels = new String[available.size()];
@@ -287,7 +287,7 @@ public class EditListActivity extends AppActivity {
         new AlertDialog.Builder(this)
                 .setTitle(groupTitle)
                 .setMultiChoiceItems(labels, checked, (d, which, isChecked) -> checked[which] = isChecked)
-                .setPositiveButton("Afegeix", (d, w) -> {
+                .setPositiveButton(getString(R.string.add), (d, w) -> {
                     int added = 0;
                     for (int i = 0; i < checked.length; i++) {
                         if (checked[i]) { entries.add(available.get(i)); added++; }
@@ -295,7 +295,7 @@ public class EditListActivity extends AppActivity {
                     if (added > 0) {
                         save();
                         ((ListView) findViewById(R.id.list)).smoothScrollToPosition(entries.size() - 1);
-                        toast("S’ha afegit: " + added + (added == 1 ? " font" : " fonts"));
+                        toast(getString(R.string.added_prefix) + added + (added == 1 ? getString(R.string.one_source) : getString(R.string.many_sources)));
                     }
                 })
                 .setNegativeButton(R.string.cancel, null)
@@ -307,9 +307,9 @@ public class EditListActivity extends AppActivity {
     private void addByAddress() {
         final EditText input = dialogInput("https://example.com/podcast.xml",
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI, EditorInfo.IME_ACTION_DONE);
-        final TextView status = dialogText("Enganxa l’adreça del canal RSS del pòdcast. "
-                + "Es reproduirà l’episodi més recent.");
-        final AlertDialog dialog = showInputDialog("Canal del pòdcast", "Afegeix", input, status, null);
+        final TextView status = dialogText(getString(R.string.feed_instructions)
+                + getString(R.string.feed_latest));
+        final AlertDialog dialog = showInputDialog(getString(R.string.podcast_feed), getString(R.string.add), input, status, null);
         final Button add = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         add.setOnClickListener(v -> {
             String url = input.getText().toString().trim();
@@ -322,21 +322,21 @@ public class EditListActivity extends AppActivity {
     }
 
     private void searchPodcasts() {
-        final EditText input = dialogInput("Nom del pòdcast", InputType.TYPE_CLASS_TEXT,
+        final EditText input = dialogInput(getString(R.string.podcast_name), InputType.TYPE_CLASS_TEXT,
                 EditorInfo.IME_ACTION_SEARCH);
-        final TextView status = dialogText("Cerca al directori de pòdcasts d’Apple.");
+        final TextView status = dialogText(getString(R.string.search_directory));
         final List<PodcastSearch.Result> found = new ArrayList<>();
         final ResultAdapter results = new ResultAdapter(found);
         final ListView list = new ListView(this);
         list.setAdapter(results);
-        final AlertDialog dialog = showInputDialog("Cerca pòdcasts", "Cerca", input, status, list);
+        final AlertDialog dialog = showInputDialog(getString(R.string.search_podcasts), getString(R.string.search), input, status, list);
         final boolean[] busy = {false};
 
         final Runnable search = () -> {
             final String term = input.getText().toString().trim();
             if (term.isEmpty() || busy[0]) return;
             final int request = ++searchRequest;
-            status.setText("S’està cercant…");
+            status.setText(getString(R.string.searching));
             ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE))
                     .hideSoftInputFromWindow(input.getWindowToken(), 0);
             background.execute(() -> {
@@ -348,10 +348,10 @@ public class EditListActivity extends AppActivity {
                         found.addAll(r);
                         results.notifyDataSetChanged();
                         list.setSelection(0);
-                        status.setText(r.isEmpty() ? "No s’ha trobat cap pòdcast." : "Toca un pòdcast per afegir-lo.");
+                        status.setText(r.isEmpty() ? getString(R.string.no_results) : getString(R.string.tap_result));
                     });
                 } catch (IOException e) {
-                    onUi(() -> { if (request == searchRequest) status.setText("La cerca ha fallat. Comprova la connexió i torna-ho a provar."); });
+                    onUi(() -> { if (request == searchRequest) status.setText(getString(R.string.search_failed)); });
                 }
             });
         };
@@ -378,12 +378,12 @@ public class EditListActivity extends AppActivity {
         String id = listed != null ? listed.id() : Source.RSS + "|" + url;
         for (Source s : entries) {
             if (s.id().equals(id)) {
-                status.setText(s.name + " ja és a la teva llista.");
+                status.setText(s.name + getString(R.string.already_added_suffix));
                 onFailure.run();
                 return;
             }
         }
-        status.setText(name != null ? "S’està comprovant: " + name + "…" : "S’està comprovant…");
+        status.setText(name != null ? getString(R.string.checking_prefix) + name + "…" : getString(R.string.checking));
         background.execute(() -> {
             try {
                 final Source added;
@@ -402,11 +402,11 @@ public class EditListActivity extends AppActivity {
                     entries.add(added);
                     save();
                     ((ListView) findViewById(R.id.list)).smoothScrollToPosition(entries.size() - 1);
-                    toast("S’ha afegit: " + added.name);
+                    toast(getString(R.string.added_prefix) + added.name);
                 });
             } catch (Exception e) {
                 onUi(() -> {
-                    status.setText("No s’ha pogut llegir el canal. Comprova l’adreça i la connexió.");
+                    status.setText(getString(R.string.feed_failed));
                     onFailure.run();
                 });
             }
@@ -498,7 +498,7 @@ public class EditListActivity extends AppActivity {
             List<String> parts = new ArrayList<>();
             if (!r.author.isEmpty()) parts.add(r.author);
             if (!r.genre.isEmpty()) parts.add(r.genre);
-            if (r.updatedAt > 0) parts.add("actualitzat " + age(r.updatedAt));
+            if (r.updatedAt > 0) parts.add(getString(R.string.updated_prefix) + age(r.updatedAt));
             ((TextView) row.getChildAt(0)).setText(r.name);
             ((TextView) row.getChildAt(1)).setText(TextUtils.join("  ·  ", parts));
             return row;

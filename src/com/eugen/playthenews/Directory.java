@@ -91,10 +91,9 @@ final class Directory {
     }
 
     static String languageName(String code) {
-        for (String[] l : LANGUAGES) if (l[0].equals(code)) return l[1];
         // Feeds added by address or search: the language's own name ("Nederlands") if Android knows it.
         Locale locale = Locale.forLanguageTag(code == null ? "" : code);
-        String name = locale.getDisplayLanguage(Locale.forLanguageTag("ca"));
+        String name = locale.getDisplayLanguage(Locale.forLanguageTag(AppLanguage.code()));
         if (name.isEmpty() || name.equalsIgnoreCase(code)) return "Podcast";
         return name.substring(0, 1).toUpperCase(locale) + name.substring(1);
     }

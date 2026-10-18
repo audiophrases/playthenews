@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Player screen. Opening it plays "La meva llista" unless something is already loaded; the controls,
+ * Player screen. Opening it plays getString(R.string.my_list_short) unless something is already loaded; the controls,
  * queue and category buttons all drive {@link PlayerService} through its MediaSession.
  */
 public class PlayNewsActivity extends AppActivity {
@@ -78,9 +78,19 @@ public class PlayNewsActivity extends AppActivity {
         autoStartChecked = savedInstanceState != null
                 && savedInstanceState.getBoolean(STATE_AUTOSTARTED);
 
+        findViewById(R.id.language).setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.language)
+                .setSingleChoiceItems(new String[]{"Català", "English"}, "ca".equals(AppLanguage.code()) ? 0 : 1, (dialog, which) -> {
+                    String code = which == 0 ? "ca" : "en";
+                    dialog.dismiss();
+                    if (!code.equals(AppLanguage.code())) {
+                        getSharedPreferences("appearance", 0).edit().putString("language", code).apply();
+                        recreate();
+                    }
+                }).setNegativeButton(R.string.cancel, null).show());
         Button collapse = findViewById(R.id.collapse_player);
         Button theme = findViewById(R.id.theme_toggle);
-        theme.setText(day(this) ? "Mode de nit" : "Mode de dia");
+        theme.setText(day(this) ? getString(R.string.night_mode) : getString(R.string.day_mode));
         theme.setOnClickListener(v -> {
             getSharedPreferences("appearance", 0).edit().putBoolean("day", !day(this)).apply();
             recreate();
@@ -133,7 +143,7 @@ public class PlayNewsActivity extends AppActivity {
                 != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
         }
-        setStatus("S’està connectant…");
+        setStatus(getString(R.string.connecting));
     }
 
     @Override
@@ -165,6 +175,7 @@ public class PlayNewsActivity extends AppActivity {
             controller = new MediaController(PlayNewsActivity.this, service.getSessionToken());
             controller.registerCallback(controllerCallback, handler);
             service.addListener(catalogListener);
+            service.refreshLanguage();
             buildCategoryButtons();
             refreshAll();
             maybeAutoStart();
@@ -190,14 +201,14 @@ public class PlayNewsActivity extends AppActivity {
         if (autoStartChecked) return;
         autoStartChecked = true;
         if (!service.isActive()) {
-            setStatus("S’està iniciant la teva llista…");
+            setStatus(getString(R.string.starting_list));
             service.playMyList(0);
         }
     }
 
     private void buildCategoryButtons() {
         categoryRow.removeAllViews();
-        addChip(PlayerService.MY_LIST, v -> { if (service != null) service.playMyList(0); });
+        addChip(getString(R.string.my_list_short), v -> { if (service != null) service.playMyList(0); });
         Catalog catalog = service != null ? service.getCatalog() : null;
         if (catalog == null) return;
         for (final Catalog.Category c : catalog.categories) {
@@ -277,14 +288,14 @@ public class PlayNewsActivity extends AppActivity {
         playPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
 
         switch (st) {
-            case PlaybackState.STATE_PLAYING: setStatus("En reproducció"); break;
-            case PlaybackState.STATE_PAUSED: setStatus("En pausa"); break;
-            case PlaybackState.STATE_BUFFERING: setStatus("S’està carregant…"); break;
-            case PlaybackState.STATE_CONNECTING: setStatus("S’estan cercant les últimes notícies…"); break;
-            case PlaybackState.STATE_STOPPED: setStatus("Aturat"); break;
+            case PlaybackState.STATE_PLAYING: setStatus(getString(R.string.playing)); break;
+            case PlaybackState.STATE_PAUSED: setStatus(getString(R.string.paused)); break;
+            case PlaybackState.STATE_BUFFERING: setStatus(getString(R.string.loading)); break;
+            case PlaybackState.STATE_CONNECTING: setStatus(getString(R.string.checking_news)); break;
+            case PlaybackState.STATE_STOPPED: setStatus(getString(R.string.stopped)); break;
             case PlaybackState.STATE_ERROR:
                 CharSequence msg = s.getErrorMessage();
-                setStatus(msg != null ? msg : "Error de reproducció");
+                setStatus(msg != null ? msg : getString(R.string.playback_error));
                 break;
             default: setStatus(""); break;
         }
@@ -405,7 +416,7 @@ public class PlayNewsActivity extends AppActivity {
                     null, null, null);
             CharSequence t = d.getTitle();
             CharSequence sub = d.getSubtitle();
-            String text = (i + 1) + ".  " + (t != null ? t : "Element " + (i + 1));
+            String text = (i + 1) + ".  " + (t != null ? t : getString(R.string.item) + (i + 1));
             if (sub != null && sub.length() > 0) text += "  ·  " + sub;
             tv.setText(text);
             boolean active = item.getQueueId() == activeQueueId();
@@ -423,7 +434,7 @@ public class PlayNewsActivity extends AppActivity {
         findViewById(R.id.subtitle).setVisibility(expanded ? View.VISIBLE : View.GONE);
         ((TextView) findViewById(R.id.title)).setMaxLines(expanded ? 2 : 1);
         findViewById(R.id.player_details).setVisibility(expanded ? View.VISIBLE : View.GONE);
-        ((Button) findViewById(R.id.collapse_player)).setText(expanded ? "Redueix" : "Amplia");
+        ((Button) findViewById(R.id.collapse_player)).setText(expanded ? getString(R.string.collapse_player) : getString(R.string.expand_player));
     }
 
     private void setStatus(CharSequence s) { status.setText(s); }

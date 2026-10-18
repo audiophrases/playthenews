@@ -14,8 +14,10 @@
     android:paddingTop="12dp"
     android:paddingBottom="12dp">
 
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
     <HorizontalScrollView
-        android:layout_width="match_parent"
+        android:layout_weight="1"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:scrollbars="none">
         <LinearLayout
@@ -24,10 +26,12 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal" />
     </HorizontalScrollView>
+    <TextView android:id="@+id/language" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_gravity="end" android:gravity="center" android:paddingLeft="12dp" android:paddingRight="12dp" android:textSize="14sp" android:textColor="@color/accent" android:background="?android:attr/selectableItemBackground" android:text="@string/language" />
+    </LinearLayout>
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <Button android:id="@+id/collapse_player" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:textAllCaps="false" android:textSize="14sp" android:text="Amplia" />
-        <Button android:id="@+id/theme_toggle" android:layout_width="wrap_content" android:layout_height="48dp" android:textAllCaps="false" android:textSize="14sp" android:text="Mode de dia" />
+        <Button android:id="@+id/collapse_player" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:textAllCaps="false" android:textSize="14sp" android:text="@string/expand_player" />
+        <Button android:id="@+id/theme_toggle" android:layout_width="wrap_content" android:layout_height="48dp" android:textAllCaps="false" android:textSize="14sp" android:text="@string/day_mode" />
     </LinearLayout>
     <ImageView
         android:id="@+id/art"

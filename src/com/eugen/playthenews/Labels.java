@@ -2,6 +2,8 @@ package com.eugen.playthenews;
 final class Labels {
     static String category(String name) {
         if (name == null) return "";
+        if (PlayerService.MY_LIST.equals(name)) return AppLanguage.text(R.string.my_list_short);
+        if ("en".equals(AppLanguage.code())) return name;
         switch (name) {
             case "General": return "General";
             case "World": return "Món";
