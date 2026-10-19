@@ -38,11 +38,11 @@
     <string name="reset_title">"Vols restablir la llista?"</string>
     <string name="reset_message">"Torna a la llista predeterminada de Google: les primeres deu fonts generals."</string>
     <string name="checking_suffix">"  ·  s’està comprovant…"</string>
-    <string name="just_now">"ara mateix"</string>
-    <string name="minutes_ago">" min enrere"</string>
-    <string name="hours_ago">" h enrere"</string>
-    <string name="one_day_ago">"fa 1 dia"</string>
-    <string name="days_ago">" dies enrere"</string>
+    <string name="just_now">"0 min"</string>
+    <string name="minutes_ago">" min"</string>
+    <string name="hours_ago">" h"</string>
+    <string name="one_day_ago">"1 dia"</string>
+    <string name="days_ago">" dies"</string>
     <string name="google_loading">"Les notícies de Google encara s’estan carregant. Torna-ho a provar d’aquí a un moment."</string>
     <string name="google_group">"Google News (totes les categories)"</string>
     <string name="search_podcasts_more">"Cerca pòdcasts…"</string>
@@ -76,4 +76,9 @@
     <string name="cannot_play_prefix">"No s’ha pogut reproduir: "</string>
     <string name="skip_suffix">". Es passa a la següent font"</string>
     <string name="my_list_short">"La meva llista"</string>
+  <string name="publication_unknown">"Hora de publicació desconeguda"</string>
+  <string name="sleep_start">"Posa en pausa al cap de 30 minuts"</string>
+  <string name="sleep_cancel">"Cancel·la el temporitzador"</string>
+  <string name="sleep_timer_title">"Temporitzador de son"</string>
+  <string name="sleep_off">"Desactivat"</string>
 </resources>

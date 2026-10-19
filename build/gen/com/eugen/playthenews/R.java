@@ -78,11 +78,12 @@ public final class R {
     public static final int reset=0x7f030015;
     public static final int rewind=0x7f030016;
     public static final int seek=0x7f030017;
-    public static final int status=0x7f030018;
-    public static final int stop=0x7f030019;
-    public static final int subtitle=0x7f03001a;
-    public static final int theme_toggle=0x7f03001b;
-    public static final int title=0x7f03001c;
+    public static final int sleep_timer=0x7f030018;
+    public static final int status=0x7f030019;
+    public static final int stop=0x7f03001a;
+    public static final int subtitle=0x7f03001b;
+    public static final int theme_toggle=0x7f03001c;
+    public static final int title=0x7f03001d;
   }
   public static final class layout {
     public static final int activity_edit=0x7f040000;
@@ -153,24 +154,29 @@ public final class R {
     public static final int podcast_feed=0x7f070037;
     public static final int podcast_name=0x7f070038;
     public static final int previous=0x7f070039;
-    public static final int remove=0x7f07003a;
-    public static final int reset=0x7f07003b;
-    public static final int reset_message=0x7f07003c;
-    public static final int reset_title=0x7f07003d;
-    public static final int rewind=0x7f07003e;
-    public static final int search=0x7f07003f;
-    public static final int search_directory=0x7f070040;
-    public static final int search_failed=0x7f070041;
-    public static final int search_podcasts=0x7f070042;
-    public static final int search_podcasts_more=0x7f070043;
-    public static final int searching=0x7f070044;
-    public static final int skip_suffix=0x7f070045;
-    public static final int starting_list=0x7f070046;
-    public static final int stop=0x7f070047;
-    public static final int stopped=0x7f070048;
-    public static final int tap_result=0x7f070049;
-    public static final int up_next=0x7f07004a;
-    public static final int updated_prefix=0x7f07004b;
+    public static final int publication_unknown=0x7f07003a;
+    public static final int remove=0x7f07003b;
+    public static final int reset=0x7f07003c;
+    public static final int reset_message=0x7f07003d;
+    public static final int reset_title=0x7f07003e;
+    public static final int rewind=0x7f07003f;
+    public static final int search=0x7f070040;
+    public static final int search_directory=0x7f070041;
+    public static final int search_failed=0x7f070042;
+    public static final int search_podcasts=0x7f070043;
+    public static final int search_podcasts_more=0x7f070044;
+    public static final int searching=0x7f070045;
+    public static final int skip_suffix=0x7f070046;
+    public static final int sleep_cancel=0x7f070047;
+    public static final int sleep_off=0x7f070048;
+    public static final int sleep_start=0x7f070049;
+    public static final int sleep_timer_title=0x7f07004a;
+    public static final int starting_list=0x7f07004b;
+    public static final int stop=0x7f07004c;
+    public static final int stopped=0x7f07004d;
+    public static final int tap_result=0x7f07004e;
+    public static final int up_next=0x7f07004f;
+    public static final int updated_prefix=0x7f070050;
   }
   public static final class style {
     public static final int ControlButton=0x7f080000;

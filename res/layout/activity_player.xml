@@ -22,9 +22,10 @@
         <Button android:id="@+id/collapse_player" style="@style/TopAction"
             android:text="@string/expand_player" />
         <Button android:id="@+id/theme_toggle" style="@style/TopAction"
-            android:layout_weight="1.2" android:text="@string/day_mode" />
-        <TextView android:id="@+id/language" style="@style/TopAction"
+            android:text="@string/day_mode" />
+        <Button android:id="@+id/language" style="@style/TopAction"
             android:text="@string/language" />
+        <Button android:id="@+id/sleep_timer" style="@style/TopAction" android:text="Zzz" />
     </LinearLayout>
 
     <HorizontalScrollView
@@ -96,14 +97,16 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textColor="@color/secondary"
-            android:textSize="12sp"
+            android:textSize="13.2sp"
+            android:textStyle="bold"
             android:text="0:00" />
         <TextView
             android:id="@+id/duration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/secondary"
-            android:textSize="12sp"
+            android:textSize="13.2sp"
+            android:textStyle="bold"
             android:text="0:00" />
     </LinearLayout>
 
@@ -159,9 +162,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textColor="@color/secondary"
-            android:textSize="12sp"
-            android:textAllCaps="true"
-            android:text="@string/up_next" />
+            android:textSize="13.2sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:text="0:00/--:--" />
         <TextView
             android:id="@+id/edit_list"
             android:layout_width="wrap_content"

@@ -61,6 +61,7 @@ public class PlayNewsActivity extends AppActivity {
     private List<MediaSession.QueueItem> queue = new ArrayList<>();
     private boolean autoStartChecked = false;
     private boolean userSeeking = false;
+    private long shownMinute = -1;
     private long shownActiveId = MediaSession.QueueItem.UNKNOWN_ID;
 
     private LinearLayout categoryRow;
@@ -78,19 +79,18 @@ public class PlayNewsActivity extends AppActivity {
         autoStartChecked = savedInstanceState != null
                 && savedInstanceState.getBoolean(STATE_AUTOSTARTED);
 
-        findViewById(R.id.language).setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.language)
-                .setSingleChoiceItems(new String[]{"Català", "English"}, "ca".equals(AppLanguage.code()) ? 0 : 1, (dialog, which) -> {
-                    String code = which == 0 ? "ca" : "en";
-                    dialog.dismiss();
-                    if (!code.equals(AppLanguage.code())) {
-                        getSharedPreferences("appearance", 0).edit().putString("language", code).apply();
-                        recreate();
-                    }
-                }).setNegativeButton(R.string.cancel, null).show());
+        Button language = findViewById(R.id.language);
+        language.setText(AppLanguage.code().toUpperCase(java.util.Locale.ROOT));
+        language.setContentDescription(getString(R.string.language));
+        language.setOnClickListener(v -> {
+            getSharedPreferences("appearance", 0).edit().putString("language", "ca".equals(AppLanguage.code()) ? "en" : "ca").apply();
+            recreate();
+        });
+        findViewById(R.id.sleep_timer).setOnClickListener(v -> showSleepTimer());
         Button collapse = findViewById(R.id.collapse_player);
         Button theme = findViewById(R.id.theme_toggle);
-        theme.setText(day(this) ? getString(R.string.night_mode) : getString(R.string.day_mode));
+        theme.setText(day(this) ? "☾" : "☀");
+        theme.setContentDescription(getString(day(this) ? R.string.night_mode : R.string.day_mode));
         theme.setOnClickListener(v -> {
             getSharedPreferences("appearance", 0).edit().putBoolean("day", !day(this)).apply();
             recreate();
@@ -123,7 +123,7 @@ public class PlayNewsActivity extends AppActivity {
 
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar s, int p, boolean fromUser) {
-                if (fromUser) elapsed.setText(formatTime(p));
+                if (fromUser) { elapsed.setText(formatTime(p)); updateProgress(); }
             }
             @Override public void onStartTrackingTouch(SeekBar s) { userSeeking = true; }
             @Override public void onStopTrackingTouch(SeekBar s) {
@@ -289,8 +289,8 @@ public class PlayNewsActivity extends AppActivity {
         playPause.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
 
         switch (st) {
-            case PlaybackState.STATE_PLAYING: setStatus(getString(R.string.playing)); break;
-            case PlaybackState.STATE_PAUSED: setStatus(getString(R.string.paused)); break;
+            case PlaybackState.STATE_PLAYING: setStatus(""); break;
+            case PlaybackState.STATE_PAUSED: setStatus(""); break;
             case PlaybackState.STATE_BUFFERING: setStatus(getString(R.string.loading)); break;
             case PlaybackState.STATE_CONNECTING: setStatus(getString(R.string.checking_news)); break;
             case PlaybackState.STATE_STOPPED: setStatus(""); break;
@@ -337,7 +337,7 @@ public class PlayNewsActivity extends AppActivity {
     }
 
     private void updateQueueTitle(CharSequence t) {
-        queueLabel.setText(t != null ? Labels.category(t.toString()) : getString(R.string.up_next));
+        updateProgress();
     }
 
     /** Keeps the playing item visible when the queue advances. */
@@ -367,9 +367,14 @@ public class PlayNewsActivity extends AppActivity {
                 seek.setProgress((int) (dur > 0 ? Math.min(pos, dur) : pos));
                 elapsed.setText(formatTime(pos));
             }
-            if (s != null && s.getState() == PlaybackState.STATE_PLAYING) {
-                handler.postDelayed(this, TICK_MS);
+            updateProgress();
+            updateTimer();
+            long minute = System.currentTimeMillis() / 60000;
+            if (minute != shownMinute) {
+                shownMinute = minute;
+                queueAdapter.notifyDataSetChanged();
             }
+            handler.postDelayed(this, s != null && s.getState() == PlaybackState.STATE_PLAYING ? TICK_MS : 1000);
         }
     };
 
@@ -416,7 +421,8 @@ public class PlayNewsActivity extends AppActivity {
                     flag(extras != null ? extras.getString(PlayerService.EXTRA_COUNTRY) : null, true),
                     null, null, null);
             CharSequence t = d.getTitle();
-            CharSequence sub = d.getSubtitle();
+            long posted = service == null ? 0 : service.publishedAt(d.getMediaId());
+            CharSequence sub = posted > 0 ? age(posted) : getString(R.string.publication_unknown);
             String text = (i + 1) + ".  " + (t != null ? t : getString(R.string.item) + (i + 1));
             if (sub != null && sub.length() > 0) text += "  ·  " + sub;
             tv.setText(text);
@@ -435,7 +441,50 @@ public class PlayNewsActivity extends AppActivity {
         findViewById(R.id.subtitle).setVisibility(expanded ? View.VISIBLE : View.GONE);
         ((TextView) findViewById(R.id.title)).setMaxLines(expanded ? 2 : 1);
         findViewById(R.id.player_details).setVisibility(expanded ? View.VISIBLE : View.GONE);
-        ((Button) findViewById(R.id.collapse_player)).setText(expanded ? getString(R.string.collapse_player) : getString(R.string.expand_player));
+        ((Button) findViewById(R.id.collapse_player)).setText(expanded ? "˅" : "^");
+        findViewById(R.id.collapse_player).setContentDescription(getString(expanded ? R.string.collapse_player : R.string.expand_player));
+    }
+
+    private void updateProgress() {
+        long dur = currentDuration();
+        queueLabel.setText(elapsed.getText() + "/" + (dur > 0 ? formatTime(dur) : "--:--"));
+    }
+
+    private void showSleepTimer() {
+        if (service == null) return;
+        int[] minutes = {0, 15, 30, 45, 60, 90, 120};
+        String[] options = new String[minutes.length];
+        long remaining = service.sleepRemaining();
+        int selected = remaining == 0 ? 0 : -1;
+        for (int i = 0; i < minutes.length; i++) {
+            options[i] = minutes[i] == 0 ? getString(R.string.sleep_off) : minutes[i] + " min";
+            if (remaining > 0 && (remaining + 59999) / 60000 == minutes[i]) selected = i;
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(R.string.sleep_timer_title)
+                .setSingleChoiceItems(options, selected, (dialog, which) -> {
+                    if (service != null) service.setSleepTimer(minutes[which]);
+                    updateTimer();
+                    dialog.dismiss();
+                })
+                .setNegativeButton(R.string.cancel, null).show();
+    }
+
+    private void updateTimer() {
+        TextView timer = findViewById(R.id.sleep_timer);
+        long remaining = service == null ? 0 : service.sleepRemaining();
+        timer.setText(remaining > 0 ? "Zzz " + ((remaining + 59999) / 60000) : "Zzz");
+        timer.setSelected(remaining > 0);
+        timer.setContentDescription(getString(R.string.sleep_timer_title));
+    }
+
+    private String age(long time) {
+        long min = Math.max(0, (System.currentTimeMillis() - time) / 60000);
+        if (min < 1) return getString(R.string.just_now);
+        if (min < 60) return min + getString(R.string.minutes_ago);
+        if (min < 1440) return (min / 60) + getString(R.string.hours_ago);
+        long days = min / 1440;
+        return days == 1 ? getString(R.string.one_day_ago) : days + getString(R.string.days_ago);
     }
 
     private void setStatus(CharSequence s) {

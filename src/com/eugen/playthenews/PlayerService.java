@@ -105,6 +105,33 @@ public class PlayerService extends Service {
 
     private final IBinder binder = new LocalBinder();
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private long sleepDeadline;
+    private final Runnable sleepExpired = () -> { sleepDeadline = 0; pause(); };
+
+    void setSleepTimer(int minutes) {
+        handler.removeCallbacks(sleepExpired);
+        sleepDeadline = 0;
+        if (minutes > 0) {
+            long delay = minutes * 60_000L;
+            sleepDeadline = android.os.SystemClock.elapsedRealtime() + delay;
+            handler.postDelayed(sleepExpired, delay);
+        }
+    }
+
+    long sleepRemaining() {
+        if (sleepDeadline == 0) return 0;
+        long remaining = sleepDeadline - android.os.SystemClock.elapsedRealtime();
+        if (remaining <= 0) { handler.removeCallbacks(sleepExpired); sleepExpired.run(); }
+        return Math.max(0, remaining);
+    }
+
+    long publishedAt(String id) {
+        synchronized (episodeCache) {
+            Resolver.Episode ep = episodeCache.get(id);
+            return ep == null ? 0 : ep.publishedAt;
+        }
+    }
+
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     /** Resolves many sources at once, for sorting by date. */
     private final ExecutorService fetchers = Executors.newFixedThreadPool(LATEST_THREADS);
@@ -346,6 +373,7 @@ public class PlayerService extends Service {
         queueTitle = title;
         consecutiveFailures = 0;
         publishQueue();
+        fetchLatest(new ArrayList<>(queue), latest -> publishQueue());
         playIndex(Math.max(0, Math.min(start, queue.size() - 1)));
     }
 

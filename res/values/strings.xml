@@ -38,11 +38,11 @@
   <string name="reset_title">"Reset your list?"</string>
   <string name="reset_message">"Go back to Google’s default: the first ten General sources."</string>
   <string name="checking_suffix">"  ·  checking…"</string>
-  <string name="just_now">"just now"</string>
-  <string name="minutes_ago">" min ago"</string>
-  <string name="hours_ago">" h ago"</string>
-  <string name="one_day_ago">"1 day ago"</string>
-  <string name="days_ago">" days ago"</string>
+  <string name="just_now">"0 min"</string>
+  <string name="minutes_ago">" min"</string>
+  <string name="hours_ago">" h"</string>
+  <string name="one_day_ago">"1 day"</string>
+  <string name="days_ago">" days"</string>
   <string name="google_loading">"Google news is still loading. Try again in a moment."</string>
   <string name="google_group">"Google News (all categories)"</string>
   <string name="search_podcasts_more">"Search podcasts…"</string>
@@ -76,4 +76,9 @@
   <string name="cannot_play_prefix">"Could not play: "</string>
   <string name="skip_suffix">", skipping"</string>
   <string name="my_list_short">"My list"</string>
+  <string name="publication_unknown">"Publication time unavailable"</string>
+  <string name="sleep_start">"Pause after 30 minutes"</string>
+  <string name="sleep_cancel">"Cancel sleep timer"</string>
+  <string name="sleep_timer_title">"Sleep timer"</string>
+  <string name="sleep_off">"Off"</string>
 </resources>
