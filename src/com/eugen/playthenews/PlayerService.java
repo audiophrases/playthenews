@@ -362,6 +362,28 @@ public class PlayerService extends Service {
         queue = list;
         index = newIndex;
         publishQueue();
+        publishMetadata();
+        publishState();
+    }
+
+    void removeSource(String id) {
+        List<Source> saved = Lineup.load(this);
+        boolean changed = false;
+        for (int i = saved.size() - 1; i >= 0; i--) {
+            if (saved.get(i).id().equals(id)) { saved.remove(i); changed = true; }
+        }
+        if (changed) Lineup.save(this, saved);
+        for (int i = queue.size() - 1; i >= 0; i--) {
+            if (!queue.get(i).id().equals(id)) continue;
+            queue.remove(i);
+            if (i == index) {
+                publishQueue();
+                if (i < queue.size()) playIndex(i); else finishQueue();
+                return;
+            }
+            if (i < index) index--;
+        }
+        publishQueue();
         publishState();
     }
 

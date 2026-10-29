@@ -14,6 +14,8 @@ import java.util.Map;
 final class Countries {
 
     static final String CATALAN = "es-ct";
+    static final String[] CODES = {"at", "au", "be", "ca", "ch", "de", "es", CATALAN,
+            "fr", "gb", "ie", "in", "it", "mx", "nl", "nz", "pt", "qa", "us"};
 
     private static final Map<String, Integer> FLAGS = new HashMap<>();
 
@@ -87,6 +89,7 @@ final class Countries {
 
     /** The flag code for a source, or null if unknown. */
     static String of(Source s, Catalog catalog) {
+        if (s.flagOverride != null) return s.flagOverride;
         String name = s.name.toLowerCase(Locale.ROOT);
         if (name.contains("ser tarragona") || name.contains("las noticias de catalunya")
                 || s.url.contains("/ser_tarragona/") || s.url.contains("/las_noticias_de_catalunya/")) return CATALAN;

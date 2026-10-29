@@ -20,17 +20,23 @@ final class Source {
      * added. Null for directory and Google sources, whose flags are looked up instead.
      */
     final String country;
+    final String flagOverride;
 
     Source(String kind, String name, String group, String url) {
         this(kind, name, group, url, null);
     }
 
     Source(String kind, String name, String group, String url, String country) {
+        this(kind, name, group, url, country, null);
+    }
+
+    Source(String kind, String name, String group, String url, String country, String flagOverride) {
         this.kind = kind;
         this.name = name;
         this.group = group;
         this.url = url;
         this.country = country;
+        this.flagOverride = flagOverride;
     }
 
     /** Stable identity, used to spot duplicates and to keep the current item across edits. */
@@ -45,11 +51,13 @@ final class Source {
 
     JSONObject toJson() throws JSONException {
         JSONObject o = new JSONObject().put("k", kind).put("n", name).put("g", group).put("u", url);
-        return country != null ? o.put("c", country) : o;
+        if (country != null) o.put("c", country);
+        if (flagOverride != null) o.put("f", flagOverride);
+        return o;
     }
 
     static Source fromJson(JSONObject o) throws JSONException {
         return new Source(o.getString("k"), o.getString("n"), o.optString("g"), o.getString("u"),
-                o.has("c") ? o.getString("c") : null);
+                o.has("c") ? o.getString("c") : null, o.has("f") ? o.getString("f") : null);
     }
 }

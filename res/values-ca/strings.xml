@@ -9,6 +9,11 @@
     <string name="stop">"Atura"</string>
     <string name="up_next">"Llista de reproducció"</string>
     <string name="edit_list">"Edita la llista"</string>
+    <string name="choose_flag">"Tria la bandera de %1$s"</string>
+    <string name="flag_automatic">"Automàtica"</string>
+    <string name="flag_catalonia">"Catalunya"</string>
+    <string name="delete_source">"Vols eliminar la font?"</string>
+    <string name="delete_source_message">"Vols eliminar %1$s de la teva llista i de la cua actual?"</string>
     <string name="my_list">"La meva llista"</string>
     <string name="edit_hint">"Es reprodueix de dalt a baix. Cada font reprodueix el seu últim butlletí."</string>
     <string name="edit_hint_newest">"Primer es reprodueixen les fonts actualitzades més recentment. Es conserva el teu ordre per quan hi tornis."</string>

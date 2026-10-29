@@ -164,6 +164,41 @@ public class EditListActivity extends AppActivity {
         save();
     }
 
+    private void chooseFlag(Source s) {
+        String[] codes = Countries.CODES;
+        String[] labels = new String[codes.length + 1];
+        labels[0] = getString(R.string.flag_automatic);
+        for (int i = 0; i < codes.length; i++) {
+            labels[i + 1] = Countries.CATALAN.equals(codes[i]) ? getString(R.string.flag_catalonia)
+                    : new Locale("", codes[i].toUpperCase(Locale.ROOT)).getDisplayCountry();
+        }
+        android.widget.ArrayAdapter<String> choices = new android.widget.ArrayAdapter<String>(this,
+                android.R.layout.select_dialog_item, labels) {
+            @Override public View getView(int position, View convert, ViewGroup parent) {
+                TextView view = (TextView) super.getView(position, convert, parent);
+                android.graphics.drawable.Drawable icon = position == 0 ? null
+                        : flagDrawable(codes[position - 1]);
+                view.setCompoundDrawables(icon, null, null, null);
+                view.setCompoundDrawablePadding(dp(12));
+                return view;
+            }
+        };
+        new AlertDialog.Builder(this).setTitle(getString(R.string.choose_flag, s.name))
+                .setAdapter(choices, (dialog, which) -> {
+                    int index = entries.indexOf(s);
+                    if (index < 0) return;
+                    entries.set(index, new Source(s.kind, s.name, s.group, s.url, s.country,
+                            which == 0 ? null : codes[which - 1]));
+                    save();
+                }).setNegativeButton(R.string.cancel, null).show();
+    }
+
+    private android.graphics.drawable.Drawable flagDrawable(String code) {
+        android.graphics.drawable.Drawable d = getResources().getDrawable(Countries.flagRes(code));
+        d.setBounds(0, 0, dp(24), dp(18));
+        return d;
+    }
+
     // ---- play order -----------------------------------------------------------------------
 
     private void setNewestFirst(boolean on) {
@@ -533,6 +568,7 @@ public class EditListActivity extends AppActivity {
             row.up.setOnClickListener(v -> move(i, -1));
             row.down.setOnClickListener(v -> move(i, 1));
             row.remove.setOnClickListener(v -> remove(s));
+            row.root.setOnLongClickListener(v -> { chooseFlag(s); return true; });
             return row.root;
         }
     }

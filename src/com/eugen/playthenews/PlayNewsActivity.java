@@ -1,6 +1,7 @@
 package com.eugen.playthenews;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -137,6 +138,16 @@ public class PlayNewsActivity extends AppActivity {
         queueView.setAdapter(queueAdapter);
         queueView.setOnItemClickListener((AdapterView<?> p, View v, int pos, long id) -> {
             if (controls()) tc().skipToQueueItem(queue.get(pos).getQueueId());
+        });
+        queueView.setOnItemLongClickListener((p, v, pos, id) -> {
+            MediaDescription item = queue.get(pos).getDescription();
+            String sourceId = item.getMediaId();
+            new AlertDialog.Builder(this).setTitle(R.string.delete_source)
+                    .setMessage(getString(R.string.delete_source_message, item.getTitle()))
+                    .setPositiveButton(R.string.remove, (d, w) -> {
+                        if (service != null) service.removeSource(sourceId);
+                    }).setNegativeButton(R.string.cancel, null).show();
+            return true;
         });
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")

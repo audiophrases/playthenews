@@ -9,6 +9,11 @@
   <string name="stop">"Stop"</string>
   <string name="up_next">"Queue"</string>
   <string name="edit_list">"Edit list"</string>
+  <string name="choose_flag">"Choose flag for %1$s"</string>
+  <string name="flag_automatic">"Automatic"</string>
+  <string name="flag_catalonia">"Catalonia"</string>
+  <string name="delete_source">"Remove source?"</string>
+  <string name="delete_source_message">"Remove %1$s from your list and the current queue?"</string>
   <string name="my_list">"My news list"</string>
   <string name="edit_hint">"Plays top to bottom. Each source plays its latest bulletin."</string>
   <string name="edit_hint_newest">"The most recently updated sources play first. Your own order is kept for when you switch back."</string>
