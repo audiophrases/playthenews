@@ -82,6 +82,8 @@ public class PlayerService extends Service {
     private static final int LATEST_THREADS = 8;
     /** Newest-first waits at most this long for every source; slower ones are sorted last. */
     private static final long LATEST_WAIT_MS = 12000;
+    /** How often the playback point is saved while playing, for {@link #resumeOrPlayMyList}. */
+    private static final long SAVE_EVERY_MS = 5000;
 
     private static final long ACTIONS = PlaybackState.ACTION_PLAY | PlaybackState.ACTION_PAUSE
             | PlaybackState.ACTION_PLAY_PAUSE | PlaybackState.ACTION_STOP
@@ -166,6 +168,8 @@ public class PlayerService extends Service {
     /** Bumped on every item change so stale async results are dropped. */
     private int playToken;
     private int consecutiveFailures;
+    /** Where to start the item being loaded, when it resumes a saved bulletin. */
+    private long resumeAt;
 
     private boolean started;
     private boolean foreground;
@@ -218,6 +222,7 @@ public class PlayerService extends Service {
 
     @Override
     public void onDestroy() {
+        saveLastPlayed();
         handler.removeCallbacksAndMessages(null);
         releasePlayer();
         abandonFocus();
@@ -257,6 +262,40 @@ public class PlayerService extends Service {
     /** True while something is loaded (playing, paused or loading). */
     boolean isActive() {
         return index >= 0 && state != PlaybackState.STATE_STOPPED && state != PlaybackState.STATE_NONE;
+    }
+
+    /**
+     * Picks up where the app last left off: the same queue, source, bulletin and playback point.
+     * With nothing saved, plays My list from the top.
+     */
+    void resumeOrPlayMyList() {
+        LastPlayed last = LastPlayed.load(this);
+        if (last == null) {
+            playMyList(0);
+            return;
+        }
+        List<Source> list = last.queue;
+        int start = last.index;
+        if (MY_LIST.equals(last.title)) {
+            // Leave out sources removed from My list since, but not the one that was playing.
+            Set<String> listed = new HashSet<>();
+            for (Source s : Lineup.load(this)) listed.add(s.id());
+            list = new ArrayList<>();
+            for (int i = 0; i < last.queue.size(); i++) {
+                Source s = last.queue.get(i);
+                if (i == last.index) start = list.size();
+                if (i == last.index || listed.contains(s.id())) list.add(s);
+            }
+        }
+        Log.i(TAG, "resuming " + list.get(start).name + " at " + last.positionMs / 1000 + " s");
+        refreshCatalogIfStale();
+        queue = list;
+        queueTitle = last.title;
+        consecutiveFailures = 0;
+        publishQueue();
+        fetchLatest(new ArrayList<>(queue), latest -> publishQueue());
+        // Without its saved bulletin the source plays its latest, which starts at the top.
+        playIndex(start, last.episode, last.episode != null ? last.positionMs : 0);
     }
 
     void playMyList(int start) {
@@ -409,6 +448,11 @@ public class PlayerService extends Service {
     }
 
     private void playIndex(int i) {
+        playIndex(i, null, 0);
+    }
+
+    /** Plays item i: its latest bulletin, or the saved one given, from startAt ms. */
+    private void playIndex(int i, Resolver.Episode saved, long startAt) {
         if (i < 0 || i >= queue.size()) {
             finishQueue();
             return;
@@ -417,7 +461,9 @@ public class PlayerService extends Service {
         final int token = ++playToken;
         final Source src = queue.get(i);
         releasePlayer();
-        episode = null;
+        // Set before the state change below saves them, so the saved point isn't overwritten.
+        episode = saved;
+        resumeAt = startAt;
         art = null;
         playWhenReady = true;
         errorMessage = null;
@@ -425,11 +471,15 @@ public class PlayerService extends Service {
         setState(PlaybackState.STATE_BUFFERING);
         if (!requestFocus()) Log.w(TAG, "audio focus not granted");
         goForeground();
+        if (saved != null) {
+            startEpisode(src, saved, token, true);
+            return;
+        }
 
         worker.execute(() -> {
             try {
                 final Resolver.Episode ep = resolveCached(src);
-                handler.post(() -> { if (token == playToken) startEpisode(src, ep, token); });
+                handler.post(() -> { if (token == playToken) startEpisode(src, ep, token, false); });
             } catch (Exception e) {
                 Log.w(TAG, "could not resolve " + src.name + ": " + e);
                 handler.post(() -> { if (token == playToken) onItemFailed(src, e); });
@@ -437,7 +487,9 @@ public class PlayerService extends Service {
         });
     }
 
-    private void startEpisode(final Source src, Resolver.Episode ep, final int token) {
+    /** A saved bulletin that can't be played any more falls back to the source's latest. */
+    private void startEpisode(final Source src, Resolver.Episode ep, final int token,
+            final boolean saved) {
         if (filteredOut(ep.durationMs)) {
             dropCurrent();
             return;
@@ -466,6 +518,10 @@ public class PlayerService extends Service {
                 }
             }
             publishMetadata();
+            if (resumeAt > 0) {
+                mp.seekTo((int) resumeAt);
+                resumeAt = 0;
+            }
             if (playWhenReady) {
                 mp.start();
                 setState(PlaybackState.STATE_PLAYING);
@@ -477,7 +533,7 @@ public class PlayerService extends Service {
         player.setOnCompletionListener(mp -> { if (token == playToken) skip(1); });
         player.setOnErrorListener((mp, what, extra) -> {
             if (token == playToken) {
-                onItemFailed(src, new Exception("player error " + what + "/" + extra));
+                onEpisodeFailed(src, new Exception("player error " + what + "/" + extra), saved);
             }
             return true;
         });
@@ -488,8 +544,17 @@ public class PlayerService extends Service {
             player.setDataSource(this, Uri.parse(ep.audioUrl), headers);
             player.prepareAsync();
         } catch (Exception e) {
-            onItemFailed(src, e);
+            onEpisodeFailed(src, e, saved);
         }
+    }
+
+    private void onEpisodeFailed(Source src, Exception e, boolean saved) {
+        if (!saved) {
+            onItemFailed(src, e);
+            return;
+        }
+        Log.i(TAG, "saved bulletin of " + src.name + " is gone (" + e + "), playing its latest");
+        playIndex(index);
     }
 
     /** My list's length filter rejects a bulletin this long. */
@@ -532,7 +597,7 @@ public class PlayerService extends Service {
 
     void play() {
         if (index < 0) {
-            playMyList(0);
+            resumeOrPlayMyList();
         } else if (prepared && player != null) {
             playWhenReady = true;
             requestFocus();
@@ -555,6 +620,7 @@ public class PlayerService extends Service {
     }
 
     void stop() {
+        saveLastPlayed();
         playToken++;
         releasePlayer();
         index = -1;
@@ -597,6 +663,7 @@ public class PlayerService extends Service {
     private void finishQueue() {
         Log.i(TAG, "end of " + queueTitle);
         stop();
+        LastPlayed.clear(this); // Nothing left to resume: the next start plays My list afresh.
     }
 
     // ---- session --------------------------------------------------------------------------
@@ -622,6 +689,22 @@ public class PlayerService extends Service {
     private void setState(int newState) {
         state = newState;
         publishState();
+        handler.removeCallbacks(saveTick);
+        if (state == PlaybackState.STATE_PLAYING) handler.postDelayed(saveTick, SAVE_EVERY_MS);
+    }
+
+    private final Runnable saveTick = new Runnable() {
+        @Override public void run() {
+            saveLastPlayed();
+            if (state == PlaybackState.STATE_PLAYING) handler.postDelayed(this, SAVE_EVERY_MS);
+        }
+    };
+
+    /** Remembers the queue, item, bulletin and playback point; nothing while none is loaded. */
+    private void saveLastPlayed() {
+        if (index < 0 || index >= queue.size()) return;
+        long at = prepared && player != null ? player.getCurrentPosition() : resumeAt;
+        LastPlayed.save(this, queue, queueTitle, index, episode, at);
     }
 
     private void publishState() {
@@ -631,6 +714,7 @@ public class PlayerService extends Service {
                 .setState(state, position(), state == PlaybackState.STATE_PLAYING ? 1f : 0f);
         if (state == PlaybackState.STATE_ERROR && errorMessage != null) b.setErrorMessage(errorMessage);
         session.setPlaybackState(b.build());
+        saveLastPlayed();
         updateNotification();
         setNoisyReceiver(state == PlaybackState.STATE_PLAYING);
     }

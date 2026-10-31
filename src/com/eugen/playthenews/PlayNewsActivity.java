@@ -207,13 +207,13 @@ public class PlayNewsActivity extends AppActivity {
 
     private final PlayerService.Listener catalogListener = this::buildCategoryButtons;
 
-    /** One tap = news: play My list unless something is already loaded. */
+    /** One tap = news: resume what played last, or My list, unless something is loaded. */
     private void maybeAutoStart() {
         if (autoStartChecked) return;
         autoStartChecked = true;
         if (!service.isActive()) {
             setStatus(getString(R.string.starting_list));
-            service.playMyList(0);
+            service.resumeOrPlayMyList();
         }
     }
 
