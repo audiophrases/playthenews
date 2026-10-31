@@ -149,6 +149,8 @@ public class PlayerService extends Service {
 
     private final Map<String, Resolver.Episode> episodeCache = new HashMap<>();
     private final Map<String, Long> episodeCacheTime = new HashMap<>();
+    /** Lengths the player measured, by audio URL, for episodes whose source doesn't give one. */
+    private final Map<String, Long> measuredLength = new HashMap<>();
 
     private List<Source> queue = new ArrayList<>();
     private String queueTitle = MY_LIST;
@@ -272,11 +274,12 @@ public class PlayerService extends Service {
             toast(AppLanguage.text(R.string.empty_list));
             return;
         }
-        if (!Lineup.newestFirst(this)) {
+        if (!Lineup.newestFirst(this) && Lineup.lengthFilter(this) == 0) {
             playQueue(list, MY_LIST, start);
             return;
         }
-        // The order depends on every source's latest bulletin, so check them all first.
+        // The order and the length filter depend on every source's latest bulletin, so check
+        // them all first.
         final int token = ++playToken;
         releasePlayer();
         index = -1;
@@ -289,7 +292,14 @@ public class PlayerService extends Service {
         publishQueue(); // Keep sources visible while their latest bulletins are checked.
         goForeground(); // Keep the pending request alive during a theme change or navigation.
         fetchLatest(list, latest -> {
-            if (token == playToken) playQueue(Lineup.byNewest(list, latest), MY_LIST, start);
+            if (token != playToken) return;
+            List<Source> arranged = Lineup.arrange(this, list, latest);
+            if (arranged.isEmpty()) {
+                toast(AppLanguage.text(R.string.length_filter_empty));
+                stop();
+                return;
+            }
+            playQueue(arranged, MY_LIST, start);
         });
     }
 
@@ -342,14 +352,13 @@ public class PlayerService extends Service {
     }
 
     /**
-     * Called after My list or its play order was edited: keeps the current item playing within
-     * the new order. Newest first sorts by the episodes resolved so far.
+     * Called after My list, its play order or its length filter was edited: keeps the current
+     * item playing within the new order. Both use the episodes resolved so far.
      */
     void onLineupEdited() {
         if (!MY_LIST.equals(queueTitle) || index < 0) return;
         String currentId = queue.get(index).id();
-        List<Source> list = Lineup.load(this);
-        if (Lineup.newestFirst(this)) list = Lineup.byNewest(list, cachedEpisodes());
+        List<Source> list = Lineup.arrange(this, Lineup.load(this), cachedEpisodes());
         int newIndex = -1;
         for (int i = 0; i < list.size(); i++) {
             if (list.get(i).id().equals(currentId)) { newIndex = i; break; }
@@ -429,6 +438,10 @@ public class PlayerService extends Service {
     }
 
     private void startEpisode(final Source src, Resolver.Episode ep, final int token) {
+        if (filteredOut(ep.durationMs)) {
+            dropCurrent();
+            return;
+        }
         episode = ep;
         publishMetadata();
         loadArt(ep.artUrl, token);
@@ -444,6 +457,14 @@ public class PlayerService extends Service {
             if (token != playToken) return;
             prepared = true;
             consecutiveFailures = 0;
+            if (episode.durationMs <= 0 && mp.getDuration() > 0) {
+                // The feed didn't say how long it is; remember it for the length filter.
+                learnDuration(src, mp.getDuration());
+                if (filteredOut(mp.getDuration())) {
+                    dropCurrent();
+                    return;
+                }
+            }
             publishMetadata();
             if (playWhenReady) {
                 mp.start();
@@ -468,6 +489,29 @@ public class PlayerService extends Service {
             player.prepareAsync();
         } catch (Exception e) {
             onItemFailed(src, e);
+        }
+    }
+
+    /** My list's length filter rejects a bulletin this long. */
+    private boolean filteredOut(long durationMs) {
+        return MY_LIST.equals(queueTitle) && !Lineup.passes(Lineup.lengthFilter(this), durationMs);
+    }
+
+    /** Takes the current item out of the queue and plays the one that took its place. */
+    private void dropCurrent() {
+        Log.i(TAG, "length filter skips " + queue.get(index).name);
+        releasePlayer();
+        queue.remove(index);
+        publishQueue();
+        if (index < queue.size()) playIndex(index); else finishQueue();
+    }
+
+    private void learnDuration(Source src, long durationMs) {
+        Resolver.Episode e = episode;
+        episode = new Resolver.Episode(e.title, e.audioUrl, e.artUrl, durationMs, e.publishedAt);
+        synchronized (episodeCache) {
+            measuredLength.put(e.audioUrl, durationMs);
+            if (episodeCache.get(src.id()) == e) episodeCache.put(src.id(), episode);
         }
     }
 
@@ -640,6 +684,10 @@ public class PlayerService extends Service {
         if (Source.GOOGLE.equals(src.kind)) catalogReady.await(CATALOG_WAIT_S, TimeUnit.SECONDS);
         Resolver.Episode ep = Resolver.resolve(src, catalog);
         synchronized (episodeCache) {
+            Long measured = ep.durationMs > 0 ? null : measuredLength.get(ep.audioUrl);
+            if (measured != null) {
+                ep = new Resolver.Episode(ep.title, ep.audioUrl, ep.artUrl, measured, ep.publishedAt);
+            }
             episodeCache.put(src.id(), ep);
             episodeCacheTime.put(src.id(), System.currentTimeMillis());
         }

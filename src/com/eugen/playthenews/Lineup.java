@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * The user's own ordered list of sources ("My list") and how it plays: in that order, or newest
- * bulletin first. Both are stored in SharedPreferences.
+ * bulletin first, optionally only bulletins of some length. All are stored in SharedPreferences.
  */
 final class Lineup {
 
@@ -22,6 +22,7 @@ final class Lineup {
     private static final String PREFS = "lineup";
     private static final String KEY = "sources";
     private static final String KEY_NEWEST_FIRST = "newest_first";
+    private static final String KEY_LENGTH_FILTER = "length_filter";
 
     static boolean exists(Context c) {
         ensurePreloaded(c);
@@ -35,6 +36,39 @@ final class Lineup {
 
     static void setNewestFirst(Context c, boolean on) {
         prefs(c).edit().putBoolean(KEY_NEWEST_FIRST, on).apply();
+    }
+
+    /**
+     * 0 plays bulletins of any length; n > 0 only those shorter than n minutes; n < 0 skips
+     * those shorter than -n minutes.
+     */
+    static int lengthFilter(Context c) {
+        return prefs(c).getInt(KEY_LENGTH_FILTER, 0);
+    }
+
+    static void setLengthFilter(Context c, int filter) {
+        prefs(c).edit().putInt(KEY_LENGTH_FILTER, filter).apply();
+    }
+
+    /** Whether a bulletin this long passes the filter. An unknown length (0) always does. */
+    static boolean passes(int filter, long durationMs) {
+        if (filter == 0 || durationMs <= 0) return true;
+        boolean shorter = durationMs < Math.abs(filter) * 60_000L;
+        return filter > 0 ? shorter : !shorter;
+    }
+
+    /**
+     * The sources in play order (saved or newest first), without those whose latest bulletin the
+     * length filter rejects. Sources not in latest are kept: their length is not known yet.
+     */
+    static List<Source> arrange(Context c, List<Source> sources, Map<String, Resolver.Episode> latest) {
+        List<Source> out = newestFirst(c) ? byNewest(sources, latest) : new ArrayList<>(sources);
+        int filter = lengthFilter(c);
+        for (int i = out.size() - 1; i >= 0; i--) {
+            Resolver.Episode e = latest.get(out.get(i).id());
+            if (e != null && !passes(filter, e.durationMs)) out.remove(i);
+        }
+        return out;
     }
 
     /**

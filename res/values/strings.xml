@@ -86,4 +86,11 @@
   <string name="sleep_cancel">"Cancel sleep timer"</string>
   <string name="sleep_timer_title">"Sleep timer"</string>
   <string name="sleep_off">"Off"</string>
+  <string name="length_filter">"Bulletin length"</string>
+  <string name="length_any">"Any length"</string>
+  <string name="length_only_shorter">"Only shorter than %1$d min"</string>
+  <string name="length_skip_shorter">"Skip shorter than %1$d min"</string>
+  <string name="length_hint_only_shorter">" Only bulletins shorter than %1$d min play."</string>
+  <string name="length_hint_skip_shorter">" Bulletins shorter than %1$d min are skipped."</string>
+  <string name="length_filter_empty">"No bulletin in your list matches the length filter."</string>
 </resources>

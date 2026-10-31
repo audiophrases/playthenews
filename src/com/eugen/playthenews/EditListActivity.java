@@ -43,9 +43,13 @@ import java.util.concurrent.Executors;
 
 /**
  * Edits getString(R.string.my_list_short): add sources (Google's, the built-in directory's, or any podcast by search or
- * feed address), remove, reorder, and choose whether it plays in that order or newest first.
+ * feed address), remove, reorder, and choose whether it plays in that order or newest first, and
+ * whether only bulletins of some length play.
  */
 public class EditListActivity extends AppActivity {
+
+    /** The length filter's choices, in minutes. */
+    private static final int MIN_LENGTH = 2, MAX_LENGTH = 10;
 
     private PlayerService service;
     /** The list in the user's own order, as saved. */
@@ -55,6 +59,8 @@ public class EditListActivity extends AppActivity {
     /** Latest episode per source id, for sorting and showing ages in newest-first mode. */
     private Map<String, Resolver.Episode> latest = new HashMap<>();
     private boolean newestFirst;
+    /** As {@link Lineup#lengthFilter}. */
+    private int lengthFilter;
     private boolean checking;
     private int latestRequest;
     private int searchRequest;
@@ -62,6 +68,7 @@ public class EditListActivity extends AppActivity {
     private final ExecutorService background = Executors.newSingleThreadExecutor();
     private EntryAdapter adapter;
     private TextView hint, orderMine, orderNewest;
+    private ImageView lengthChip;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +85,9 @@ public class EditListActivity extends AppActivity {
         orderNewest = findViewById(R.id.order_newest);
         orderMine.setOnClickListener(v -> setNewestFirst(false));
         orderNewest.setOnClickListener(v -> setNewestFirst(true));
+        lengthFilter = Lineup.lengthFilter(this);
+        lengthChip = findViewById(R.id.length_filter);
+        lengthChip.setOnClickListener(v -> chooseLengthFilter());
         showOrder();
 
         findViewById(R.id.back).setOnClickListener(v -> finish());
@@ -214,7 +224,52 @@ public class EditListActivity extends AppActivity {
     private void showOrder() {
         orderMine.setSelected(!newestFirst);
         orderNewest.setSelected(newestFirst);
-        hint.setText(newestFirst ? R.string.edit_hint_newest : R.string.edit_hint);
+        String filter = lengthFilterText(R.string.length_hint_only_shorter, R.string.length_hint_skip_shorter);
+        hint.setText(getString(newestFirst ? R.string.edit_hint_newest : R.string.edit_hint) + filter);
+        lengthChip.setSelected(lengthFilter != 0);
+        lengthChip.setContentDescription(getString(R.string.length_filter) + ": " + (lengthFilter == 0
+                ? getString(R.string.length_any)
+                : lengthFilterText(R.string.length_only_shorter, R.string.length_skip_shorter)));
+    }
+
+    /** The current filter described with one of two strings taking the minutes; "" if none. */
+    private String lengthFilterText(int onlyShorter, int skipShorter) {
+        if (lengthFilter == 0) return "";
+        return getString(lengthFilter > 0 ? onlyShorter : skipShorter, Math.abs(lengthFilter));
+    }
+
+    // ---- length filter --------------------------------------------------------------------
+
+    /** Any length, then "only shorter than" 2..10 min, then "skip shorter than" 2..10 min. */
+    private void chooseLengthFilter() {
+        final List<Integer> values = new ArrayList<>();
+        final List<String> labels = new ArrayList<>();
+        values.add(0);
+        labels.add(getString(R.string.length_any));
+        for (int sign : new int[]{1, -1}) {
+            for (int m = MIN_LENGTH; m <= MAX_LENGTH; m++) {
+                values.add(sign * m);
+                labels.add(getString(sign > 0 ? R.string.length_only_shorter : R.string.length_skip_shorter, m));
+            }
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.length_filter)
+                .setSingleChoiceItems(labels.toArray(new String[0]), values.indexOf(lengthFilter), (d, which) -> {
+                    d.dismiss();
+                    setLengthFilter(values.get(which));
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void setLengthFilter(int filter) {
+        if (filter == lengthFilter) return;
+        lengthFilter = filter;
+        Lineup.setLengthFilter(this, filter);
+        showOrder();
+        refreshRows();
+        if (service != null) service.onLineupEdited();
+        refreshLatest();
     }
 
     private void refreshRows() {
@@ -222,9 +277,12 @@ public class EditListActivity extends AppActivity {
         adapter.notifyDataSetChanged();
     }
 
-    /** Newest first needs every source's latest bulletin; the service resolves (and caches) them. */
+    /**
+     * Newest first and the length filter need every source's latest bulletin; the service
+     * resolves (and caches) them.
+     */
     private void refreshLatest() {
-        if (service == null || !newestFirst || entries.isEmpty()) return;
+        if (service == null || (!newestFirst && lengthFilter == 0) || entries.isEmpty()) return;
         final int request = ++latestRequest;
         checking = true;
         refreshRows();
@@ -239,10 +297,25 @@ public class EditListActivity extends AppActivity {
     }
 
     private String subtitle(Source s) {
-        if (!newestFirst) return s.label();
+        if (!newestFirst && lengthFilter == 0) return s.label();
         Resolver.Episode e = latest.get(s.id());
-        if (e != null && e.publishedAt > 0) return s.label() + "  ·  " + age(e.publishedAt);
-        return checking ? s.label() + getString(R.string.checking_suffix) : s.label();
+        if (e == null) return checking ? s.label() + getString(R.string.checking_suffix) : s.label();
+        String out = s.label();
+        if (newestFirst && e.publishedAt > 0) out += "  ·  " + age(e.publishedAt);
+        if (lengthFilter != 0 && e.durationMs > 0) out += "  ·  " + length(e.durationMs);
+        return out;
+    }
+
+    /** "4:05". */
+    private static String length(long ms) {
+        long s = ms / 1000;
+        return String.format(Locale.ROOT, "%d:%02d", s / 60, s % 60);
+    }
+
+    /** Whether the length filter keeps this source's latest bulletin (true while unknown). */
+    private boolean kept(Source s) {
+        Resolver.Episode e = latest.get(s.id());
+        return e == null || Lineup.passes(lengthFilter, e.durationMs);
     }
 
     /** getString(R.string.just_now), "25 min ago", "3 h ago", "2 days ago". */
@@ -557,6 +630,9 @@ public class EditListActivity extends AppActivity {
             if (flag != 0) row.flag.setImageResource(flag);
             row.title.setText((i + 1) + ".  " + s.name);
             row.subtitle.setText(subtitle(s));
+            // Filtered-out sources stay listed, so they can still be edited, but dimmed.
+            row.title.setAlpha(kept(s) ? 1f : 0.4f);
+            row.subtitle.setAlpha(kept(s) ? 1f : 0.4f);
             // Newest first sets the order itself; moving only applies to the user's own order.
             int arrows = newestFirst ? View.GONE : View.VISIBLE;
             row.up.setVisibility(arrows);

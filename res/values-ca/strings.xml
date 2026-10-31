@@ -86,4 +86,11 @@
   <string name="sleep_cancel">"Cancel·la el temporitzador"</string>
   <string name="sleep_timer_title">"Temporitzador de son"</string>
   <string name="sleep_off">"Desactivat"</string>
+  <string name="length_filter">"Durada del butlletí"</string>
+  <string name="length_any">"Qualsevol durada"</string>
+  <string name="length_only_shorter">"Només de menys de %1$d min"</string>
+  <string name="length_skip_shorter">"Omet els de menys de %1$d min"</string>
+  <string name="length_hint_only_shorter">" Només sonen els butlletins de menys de %1$d min."</string>
+  <string name="length_hint_skip_shorter">" S’ometen els butlletins de menys de %1$d min."</string>
+  <string name="length_filter_empty">"Cap butlletí de la teva llista no compleix el filtre de durada."</string>
 </resources>
